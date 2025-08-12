@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import axios from 'axios';
-
-// Axios 기본 설정
-axios.defaults.baseURL = process.env.REACT_APP_API_URL || 'https://eap-service-lt1r.onrender.com';
 import Login from './pages/Login.tsx';
 import Register from './pages/Register.tsx';
 import EmployeeDashboard from './pages/EmployeeDashboard.tsx';
@@ -12,6 +9,9 @@ import CounselorDashboard from './pages/CounselorDashboard.tsx';
 import FinancialAdvisorDashboard from './pages/FinancialAdvisorDashboard.tsx';
 import CompanyAdminDashboard from './pages/CompanyAdminDashboard.tsx';
 import SuperAdminDashboard from './pages/SuperAdminDashboard.tsx';
+
+// Axios 기본 설정
+axios.defaults.baseURL = process.env.REACT_APP_API_URL || 'https://eap-service-lt1r.onrender.com';
 
 function App() {
   const [user, setUser] = useState<any>(null);
