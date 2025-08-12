@@ -36,14 +36,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       
       
       // 대시보드 데이터 불러오기
-      const response = await axios.get('http://localhost:3000/api/reports/dashboard', {
+      const response = await axios.get('/api/reports/dashboard', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setStats(response.data);
       
       // 사용자 예약 목록 불러오기 (counseling-sessions 우선 시도)
       try {
-        const sessionsResponse = await axios.get('http://localhost:3000/api/counseling-sessions', {
+        const sessionsResponse = await axios.get('/api/counseling-sessions', {
           headers: { Authorization: `Bearer ${token}` }
         });
         // 상담 세션 데이터를 예약 형식으로 변환
@@ -61,7 +61,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         setAppointments(formattedAppointments);
       } catch (sessionError) {
         // 상담 세션 API 실패시 기존 appointments API 시도
-        const appointmentsResponse = await axios.get('http://localhost:3000/api/appointments', {
+        const appointmentsResponse = await axios.get('/api/appointments', {
           headers: { Authorization: `Bearer ${token}` }
         });
         setAppointments(appointmentsResponse.data);
@@ -90,7 +90,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const fetchCounselingRecords = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:3000/api/counseling/records', {
+      const response = await axios.get('/api/counseling/records', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setCounselingRecords(response.data);
@@ -190,7 +190,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         notes: appointmentForm.notes
       };
 
-      const response = await axios.post('http://localhost:3000/api/counseling-sessions', sessionData, {
+      const response = await axios.post('/api/counseling-sessions', sessionData, {
         headers: { Authorization: `Bearer ${token}` }
       });
 

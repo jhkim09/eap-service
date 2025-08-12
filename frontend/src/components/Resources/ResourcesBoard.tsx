@@ -71,7 +71,7 @@ const ResourcesBoard: React.FC = () => {
       params.append('sortBy', 'publishedAt');
       params.append('sortOrder', 'desc');
 
-      const response = await axios.get(`http://localhost:3000/api/resources?${params}`, {
+      const response = await axios.get(`/api/resources?${params}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -90,7 +90,7 @@ const ResourcesBoard: React.FC = () => {
   const handleResourceClick = async (resourceId: string) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:3000/api/resources/${resourceId}`, {
+      const response = await axios.get(`/api/resources/${resourceId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setSelectedResource(response.data);
@@ -102,7 +102,7 @@ const ResourcesBoard: React.FC = () => {
   const handleLikeToggle = async (resourceId: string) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.post(`http://localhost:3000/api/resources/${resourceId}/like`, {}, {
+      await axios.post(`/api/resources/${resourceId}/like`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       

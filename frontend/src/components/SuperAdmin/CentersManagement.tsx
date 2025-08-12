@@ -35,7 +35,7 @@ const CentersManagement: React.FC = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:3000/api/counseling-centers', {
+      const response = await axios.get('/api/counseling-centers', {
         headers: { Authorization: `Bearer ${token}` }
       });
       const centersData = response.data?.centers || response.data || [];
@@ -63,7 +63,7 @@ const CentersManagement: React.FC = () => {
   const handleViewCenterDetail = async (center: CounselingCenter) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:3000/api/counseling-centers/${center._id}`, {
+      const response = await axios.get(`/api/counseling-centers/${center._id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setViewingCenterDetail(response.data.center);
@@ -78,7 +78,7 @@ const CentersManagement: React.FC = () => {
     
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:3000/api/counseling-centers/${editingCenter._id}`, centerForm, {
+      await axios.put(`/api/counseling-centers/${editingCenter._id}`, centerForm, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -98,7 +98,7 @@ const CentersManagement: React.FC = () => {
   const generateTestData = async () => {
     try {
       const token = localStorage.getItem('token');
-      await axios.post('http://localhost:3000/api/super-admin/generate-test-data', {}, {
+      await axios.post('/api/super-admin/generate-test-data', {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       alert('테스트 데이터가 생성되었습니다.');

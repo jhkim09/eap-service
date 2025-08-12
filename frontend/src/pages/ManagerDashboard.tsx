@@ -36,13 +36,13 @@ const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ user, onLogout }) =
       const token = localStorage.getItem('token');
       
       // 팀원 목록 조회
-      const teamResponse = await axios.get('http://localhost:3000/api/manager/team-members', {
+      const teamResponse = await axios.get('/api/manager/team-members', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setTeamMembers(teamResponse.data);
       
       // 부서 통계 조회
-      const statsResponse = await axios.get('http://localhost:3000/api/manager/department-stats', {
+      const statsResponse = await axios.get('/api/manager/department-stats', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setDepartmentStats(statsResponse.data);

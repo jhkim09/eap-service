@@ -89,7 +89,7 @@ const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ user, onL
       
       // 회사 정보 조회
       try {
-        const companyResponse = await axios.get('http://localhost:3000/api/companies/my-company', {
+        const companyResponse = await axios.get('/api/companies/my-company', {
           headers: { Authorization: `Bearer ${token}` }
         });
         console.log('회사 정보:', companyResponse.data.company);
@@ -98,13 +98,13 @@ const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ user, onL
       }
       
       // 회사 통계 조회
-      const statsResponse = await axios.get('http://localhost:3000/api/company-admin/stats', {
+      const statsResponse = await axios.get('/api/company-admin/stats', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setCompanyStats(statsResponse.data);
       
       // 직원 목록 조회
-      const employeesResponse = await axios.get('http://localhost:3000/api/company-admin/employees', {
+      const employeesResponse = await axios.get('/api/company-admin/employees', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setEmployees(employeesResponse.data);
@@ -175,7 +175,7 @@ const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ user, onL
   const fetchDepartments = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:3000/api/company-admin/departments', {
+      const response = await axios.get('/api/company-admin/departments', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setDepartments(response.data.departments);
@@ -189,7 +189,7 @@ const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ user, onL
   const updateDepartments = async (updatedDepartments: string[]) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.put('http://localhost:3000/api/company-admin/departments', 
+      const response = await axios.put('/api/company-admin/departments', 
         { departments: updatedDepartments },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -222,7 +222,7 @@ const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ user, onL
   const fetchBusinessMetrics = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:3000/api/company-admin/business-metrics', {
+      const response = await axios.get('/api/company-admin/business-metrics', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setBusinessMetrics(response.data.businessMetrics);
@@ -235,7 +235,7 @@ const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ user, onL
   const updateBusinessMetrics = async (metrics: any) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put('http://localhost:3000/api/company-admin/business-metrics', 
+      await axios.put('/api/company-admin/business-metrics', 
         { businessMetrics: metrics },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -256,7 +256,7 @@ const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ user, onL
   const addEmployee = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post('http://localhost:3000/api/company-admin/employees', newUser, {
+      const response = await axios.post('/api/company-admin/employees', newUser, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -429,7 +429,7 @@ const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ user, onL
     try {
       const token = localStorage.getItem('token');
       const [year, month] = selectedPeriod.replace('년 ', '/').replace('월', '').split('/');
-      const response = await axios.post('http://localhost:3000/api/company-admin/reports/monthly', {
+      const response = await axios.post('/api/company-admin/reports/monthly', {
         year: parseInt(year),
         month: parseInt(month)
       }, {
@@ -465,7 +465,7 @@ const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ user, onL
   const generateSatisfactionReport = async (period: string) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post('http://localhost:3000/api/company-admin/reports/satisfaction', {
+      const response = await axios.post('/api/company-admin/reports/satisfaction', {
         period
       }, {
         headers: { Authorization: `Bearer ${token}` }
@@ -514,7 +514,7 @@ const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ user, onL
     try {
       const token = localStorage.getItem('token');
       const year = selectedYear === '사용자 정의' ? new Date().getFullYear() : parseInt(selectedYear.replace('년', ''));
-      const response = await axios.post('http://localhost:3000/api/company-admin/reports/cost', {
+      const response = await axios.post('/api/company-admin/reports/cost', {
         year
       }, {
         headers: { Authorization: `Bearer ${token}` }

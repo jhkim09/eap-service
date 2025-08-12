@@ -92,7 +92,7 @@ const CounselorDashboard: React.FC<CounselorDashboardProps> = ({ user, onLogout 
       const token = localStorage.getItem('token');
       
       // 상담사 예약 목록 조회 (counseling-sessions 사용)
-      const sessionsResponse = await axios.get('http://localhost:3000/api/counseling-sessions', {
+      const sessionsResponse = await axios.get('/api/counseling-sessions', {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -268,7 +268,7 @@ const CounselorDashboard: React.FC<CounselorDashboardProps> = ({ user, onLogout 
     try {
       setGoalsLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:3000/api/counseling-goals/counselor-goals', {
+      const response = await axios.get('/api/counseling-goals/counselor-goals', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setGoals(response.data.goals || []);
@@ -342,7 +342,7 @@ const CounselorDashboard: React.FC<CounselorDashboardProps> = ({ user, onLogout 
         actionSteps: goalForm.actionSteps.filter(step => step.trim() !== '').map(step => ({ step }))
       };
 
-      await axios.post('http://localhost:3000/api/counseling-goals', goalData, {
+      await axios.post('/api/counseling-goals', goalData, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -401,7 +401,7 @@ const CounselorDashboard: React.FC<CounselorDashboardProps> = ({ user, onLogout 
         riskLevel: 'low'
       };
       
-      await axios.post('http://localhost:3000/api/counseling/records', recordData, {
+      await axios.post('/api/counseling/records', recordData, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -429,7 +429,7 @@ const CounselorDashboard: React.FC<CounselorDashboardProps> = ({ user, onLogout 
   const updateAppointmentStatus = async (appointmentId: string, newStatus: string) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:3000/api/counselor/appointments/${appointmentId}/status`, 
+      await axios.put(`/api/counselor/appointments/${appointmentId}/status`, 
         { status: newStatus }, 
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -474,7 +474,7 @@ const CounselorDashboard: React.FC<CounselorDashboardProps> = ({ user, onLogout 
   const loadCounselorProfile = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:3000/api/users/profile', {
+      const response = await axios.get('/api/users/profile', {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -494,7 +494,7 @@ const CounselorDashboard: React.FC<CounselorDashboardProps> = ({ user, onLogout 
     setProfileLoading(true);
     try {
       const token = localStorage.getItem('token');
-      await axios.put('http://localhost:3000/api/users/profile', profileData, {
+      await axios.put('/api/users/profile', profileData, {
         headers: { Authorization: `Bearer ${token}` }
       });
       

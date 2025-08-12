@@ -158,31 +158,31 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ user, onLogou
       const token = localStorage.getItem('token');
       
       // 플랫폼 통계 조회
-      const statsResponse = await axios.get('http://localhost:3000/api/super-admin/stats', {
+      const statsResponse = await axios.get('/api/super-admin/stats', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setPlatformStats(statsResponse.data);
       
       // 회사 목록 조회
-      const companiesResponse = await axios.get('http://localhost:3000/api/super-admin/companies', {
+      const companiesResponse = await axios.get('/api/super-admin/companies', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setCompanies(companiesResponse.data.companies);
 
       // 상담사 목록 조회
-      const counselorsResponse = await axios.get('http://localhost:3000/api/counselors', {
+      const counselorsResponse = await axios.get('/api/counselors', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setCounselors(counselorsResponse.data.counselors);
 
       // 배정 대기 목록 조회
-      const assignmentsResponse = await axios.get('http://localhost:3000/api/counseling-sessions/pending-assignments', {
+      const assignmentsResponse = await axios.get('/api/counseling-sessions/pending-assignments', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setPendingAssignments(assignmentsResponse.data);
 
       // 정산 목록 조회
-      const paymentsResponse = await axios.get('http://localhost:3000/api/counselor-payments', {
+      const paymentsResponse = await axios.get('/api/counselor-payments', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setCounselorPayments(paymentsResponse.data.payments);
@@ -505,7 +505,7 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ user, onLogou
 
   const testApiConnection = async () => {
     try {
-      const response = await fetch('http://localhost:3000/api/health');
+      const response = await fetch('/api/health');
       if (response.ok) {
         setApiStatus('connected');
         setTestResult('✅ 백엔드 API 연결 성공');
@@ -524,7 +524,7 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ user, onLogou
   const createCompany = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post('http://localhost:3000/api/super-admin/companies', newCompany, {
+      const response = await axios.post('/api/super-admin/companies', newCompany, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -580,7 +580,7 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ user, onLogou
   const handleCreateCounselor = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post('http://localhost:3000/api/counselors', 
+      const response = await axios.post('/api/counselors', 
         newCounselor,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -619,7 +619,7 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ user, onLogou
       const counselor = counselors.find(c => c._id === counselorId);
       if (!counselor) return;
 
-      const response = await axios.patch(`http://localhost:3000/api/counselors/${counselorId}/status`, 
+      const response = await axios.patch(`/api/counselors/${counselorId}/status`, 
         { isActive: !counselor.isActive },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -641,7 +641,7 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ user, onLogou
   const openRateModal = async (counselorId: string) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:3000/api/counselor-rates/rate/${counselorId}`, {
+      const response = await axios.get(`/api/counselor-rates/rate/${counselorId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -667,7 +667,7 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ user, onLogou
   const saveRateSettings = async () => {
     try {
       const token = localStorage.getItem('token');
-      await axios.patch(`http://localhost:3000/api/counselor-rates/rates/${selectedCounselorId}`, 
+      await axios.patch(`/api/counselor-rates/rates/${selectedCounselorId}`, 
         rateSettings,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -684,7 +684,7 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ user, onLogou
   const handleAssignCounselor = async (assignmentId: string, counselorId: string, notes?: string) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:3000/api/counseling-sessions/${assignmentId}/assign`, {
+      await axios.put(`/api/counseling-sessions/${assignmentId}/assign`, {
         counselorId,
         assignmentNotes: notes
       }, {
@@ -706,7 +706,7 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ user, onLogou
   const handlePaymentStatusChange = async (paymentId: string, newStatus: string) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.put(`http://localhost:3000/api/counselor-payments/${paymentId}/status`, {
+      const response = await axios.put(`/api/counselor-payments/${paymentId}/status`, {
         status: newStatus
       }, {
         headers: { Authorization: `Bearer ${token}` }

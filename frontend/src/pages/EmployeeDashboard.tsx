@@ -74,14 +74,14 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ user, onLogout })
       const token = localStorage.getItem('token');
       
       // 기존 세션 데이터 조회
-      const sessionsResponse = await axios.get('http://localhost:3000/api/sessions/my-sessions', {
+      const sessionsResponse = await axios.get('/api/sessions/my-sessions', {
         headers: { Authorization: `Bearer ${token}` }
       });
       
       // 심리상담 예약 데이터 조회
       let appointmentsData = [];
       try {
-        const appointmentsResponse = await axios.get('http://localhost:3000/api/appointments', {
+        const appointmentsResponse = await axios.get('/api/appointments', {
           headers: { Authorization: `Bearer ${token}` }
         });
         appointmentsData = appointmentsResponse.data || [];
@@ -92,7 +92,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ user, onLogout })
       // 재무상담 예약 데이터 조회
       let financialSessionsData = [];
       try {
-        const financialResponse = await axios.get('http://localhost:3000/api/financial-sessions', {
+        const financialResponse = await axios.get('/api/financial-sessions', {
           headers: { Authorization: `Bearer ${token}` }
         });
         financialSessionsData = financialResponse.data?.sessions || [];
@@ -162,7 +162,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ user, onLogout })
   const loadGoalData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:3000/api/counseling-goals/my-goals', {
+      const response = await axios.get('/api/counseling-goals/my-goals', {
         headers: { Authorization: `Bearer ${token}` }
       });
       

@@ -55,7 +55,7 @@ const CounselorsManagement: React.FC = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:3000/api/counselors', {
+      const response = await axios.get('/api/counselors', {
         headers: { Authorization: `Bearer ${token}` }
       });
       const counselorsData = response.data?.counselors || response.data || [];
@@ -74,7 +74,7 @@ const CounselorsManagement: React.FC = () => {
       const counselor = counselors.find(c => c._id === counselorId);
       if (!counselor) return;
 
-      await axios.put(`http://localhost:3000/api/counselors/${counselorId}/status`, {
+      await axios.put(`/api/counselors/${counselorId}/status`, {
         isActive: !counselor.isActive
       }, {
         headers: { Authorization: `Bearer ${token}` }
@@ -99,7 +99,7 @@ const CounselorsManagement: React.FC = () => {
   const saveRateSettings = async () => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:3000/api/counselors/${selectedCounselorId}/rates`, {
+      await axios.put(`/api/counselors/${selectedCounselorId}/rates`, {
         useSystemRate: rateSettings.useSystemRate,
         customRate: rateSettings.customRate
       }, {
@@ -118,7 +118,7 @@ const CounselorsManagement: React.FC = () => {
   const createCounselor = async () => {
     try {
       const token = localStorage.getItem('token');
-      await axios.post('http://localhost:3000/api/counselors', newCounselor, {
+      await axios.post('/api/counselors', newCounselor, {
         headers: { Authorization: `Bearer ${token}` }
       });
 

@@ -58,7 +58,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, sessionTyp
         ? '/api/users/counselors' 
         : '/api/users?role=financial-advisor';
       
-      const response = await axios.get(`http://localhost:3000${endpoint}`, {
+      const response = await axios.get(`${endpoint}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -105,7 +105,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, sessionTyp
             }
           };
 
-      await axios.post(`http://localhost:3000${endpoint}`, submitData, {
+      await axios.post(`${endpoint}`, submitData, {
         headers: { Authorization: `Bearer ${token}` }
       });
 

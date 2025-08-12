@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import axios from 'axios';
+
+// Axios 기본 설정
+axios.defaults.baseURL = process.env.REACT_APP_API_URL || 'https://eap-service-lt1r.onrender.com';
 import Login from './pages/Login.tsx';
 import Register from './pages/Register.tsx';
 import EmployeeDashboard from './pages/EmployeeDashboard.tsx';
@@ -24,7 +27,7 @@ function App() {
     if (token) {
       try {
         console.log('Token found, checking profile...');
-        const response = await axios.get('http://localhost:3000/api/users/profile', {
+        const response = await axios.get('/api/users/profile', {
           headers: { Authorization: `Bearer ${token}` },
           timeout: 10000  // 10초 timeout으로 증가
         });

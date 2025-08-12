@@ -87,7 +87,7 @@ export const CounselorsManagement: React.FC<CounselorsManagementProps> = memo(({
   const handleCreate = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/api/counselors', {
+      const response = await fetch('/api/counselors', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -130,7 +130,7 @@ export const CounselorsManagement: React.FC<CounselorsManagementProps> = memo(({
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/api/counselors/${selectedCounselor._id}`, {
+      const response = await fetch(`/api/counselors/${selectedCounselor._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -157,7 +157,7 @@ export const CounselorsManagement: React.FC<CounselorsManagementProps> = memo(({
   const handleToggleActive = useCallback(async (counselorId: string, currentStatus: boolean) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/api/counselors/${counselorId}/toggle-active`, {
+      const response = await fetch(`/api/counselors/${counselorId}/toggle-active`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

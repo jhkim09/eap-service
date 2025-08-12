@@ -34,7 +34,7 @@ const Register: React.FC<RegisterProps> = ({ onLogin }) => {
 
   const fetchCompanies = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/companies/public');
+      const response = await axios.get('/api/companies/public');
       setCompanies(response.data.companies);
     } catch (err) {
       console.error('회사 목록 조회 실패:', err);
@@ -46,7 +46,7 @@ const Register: React.FC<RegisterProps> = ({ onLogin }) => {
 
   const fetchDepartments = async (companyId: string) => {
     try {
-      const response = await axios.get(`http://localhost:3000/api/companies/${companyId}/departments`);
+      const response = await axios.get(`/api/companies/${companyId}/departments`);
       setDepartments(response.data.departments || []);
     } catch (error) {
       console.error('부서 목록 조회 실패:', error);
@@ -90,7 +90,7 @@ const Register: React.FC<RegisterProps> = ({ onLogin }) => {
     }
 
     try {
-      const response = await axios.post('http://localhost:3000/api/auth/register', {
+      const response = await axios.post('/api/auth/register', {
         ...formData,
         role: 'employee'
       });

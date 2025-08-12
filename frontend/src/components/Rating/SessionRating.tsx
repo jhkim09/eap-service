@@ -45,7 +45,7 @@ const SessionRating: React.FC<SessionRatingProps> = ({
         return;
       }
 
-      await axios.put(`http://localhost:3000/api/financial-sessions/${sessionId}/feedback`, {
+      await axios.put(`/api/financial-sessions/${sessionId}/feedback`, {
         rating,
         comments: comments.trim(),
         wouldRecommend

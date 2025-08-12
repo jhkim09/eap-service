@@ -37,7 +37,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ userRole }) => {
   const fetchUnreadCount = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:3000/api/notifications/unread-count', {
+      const response = await axios.get('/api/notifications/unread-count', {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -55,7 +55,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ userRole }) => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:3000/api/notifications?limit=10', {
+      const response = await axios.get('/api/notifications?limit=10', {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -72,7 +72,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ userRole }) => {
   const markAsRead = async (notificationId: string) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:3000/api/notifications/${notificationId}/read`, {}, {
+      await axios.put(`/api/notifications/${notificationId}/read`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -89,7 +89,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ userRole }) => {
   const markAllAsRead = async () => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put('http://localhost:3000/api/notifications/mark-all-read', {}, {
+      await axios.put('/api/notifications/mark-all-read', {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       

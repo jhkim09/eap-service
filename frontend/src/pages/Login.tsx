@@ -26,7 +26,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:3000/api/auth/login', formData);
+      const response = await axios.post('/api/auth/login', formData);
       localStorage.setItem('token', response.data.token);
       onLogin(response.data.user);
     } catch (err: any) {

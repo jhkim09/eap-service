@@ -72,7 +72,7 @@ const ReportsSection: React.FC<ReportsSectionProps> = ({ advisorId }) => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:3000/api/financial-profiles', {
+      const response = await axios.get('/api/financial-profiles', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setClients(response.data);

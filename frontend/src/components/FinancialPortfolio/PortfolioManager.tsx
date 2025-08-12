@@ -113,7 +113,7 @@ const PortfolioManager: React.FC<PortfolioManagerProps> = ({
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:3000/api/financial-profiles/${userId}`, {
+      const response = await axios.get(`/api/financial-profiles/${userId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.data) {
@@ -131,7 +131,7 @@ const PortfolioManager: React.FC<PortfolioManagerProps> = ({
       setSaving(true);
       const token = localStorage.getItem('token');
       
-      const response = await axios.post('http://localhost:3000/api/financial-profiles', {
+      const response = await axios.post('/api/financial-profiles', {
         userId,
         ...profile
       }, {
@@ -874,7 +874,7 @@ const PortfolioManager: React.FC<PortfolioManagerProps> = ({
                 try {
                   const token = localStorage.getItem('token');
                   const response = await axios.post(
-                    `http://localhost:3000/api/financial-profiles/${userId}/goals`,
+                    `/api/financial-profiles/${userId}/goals`,
                     goalData,
                     { headers: { Authorization: `Bearer ${token}` } }
                   );
@@ -892,7 +892,7 @@ const PortfolioManager: React.FC<PortfolioManagerProps> = ({
                 try {
                   const token = localStorage.getItem('token');
                   const response = await axios.put(
-                    `http://localhost:3000/api/financial-profiles/${userId}/goals/${goalId}`,
+                    `/api/financial-profiles/${userId}/goals/${goalId}`,
                     updates,
                     { headers: { Authorization: `Bearer ${token}` } }
                   );
@@ -912,7 +912,7 @@ const PortfolioManager: React.FC<PortfolioManagerProps> = ({
                 try {
                   const token = localStorage.getItem('token');
                   await axios.delete(
-                    `http://localhost:3000/api/financial-profiles/${userId}/goals/${goalId}`,
+                    `/api/financial-profiles/${userId}/goals/${goalId}`,
                     { headers: { Authorization: `Bearer ${token}` } }
                   );
                   

@@ -61,13 +61,13 @@ const FinancialAdvisorDashboard: React.FC<FinancialAdvisorDashboardProps> = ({ u
       const token = localStorage.getItem('token');
       
       // 재무상담 세션 데이터 로드
-      const sessionsResponse = await axios.get('http://localhost:3000/api/financial-sessions', {
+      const sessionsResponse = await axios.get('/api/financial-sessions', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setSessions(sessionsResponse.data.sessions || []);
       
       // 대시보드 통계 데이터 로드
-      const statsResponse = await axios.get('http://localhost:3000/api/financial-sessions/advisor/stats', {
+      const statsResponse = await axios.get('/api/financial-sessions/advisor/stats', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setStats(statsResponse.data);

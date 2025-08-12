@@ -147,35 +147,35 @@ export const useSuperAdmin = () => {
 
       // 통계 데이터
       if (skipCache || !apiCache.has(CACHE_KEYS.PLATFORM_STATS)) {
-        apiCalls.push(axios.get('http://localhost:3000/api/super-admin/stats', { headers }));
+        apiCalls.push(axios.get('/api/super-admin/stats', { headers }));
         cacheKeys.push(CACHE_KEYS.PLATFORM_STATS);
         cacheTTLs.push(CACHE_TTL.PLATFORM_STATS);
       }
 
       // 회사 데이터
       if (skipCache || !apiCache.has(CACHE_KEYS.COMPANIES)) {
-        apiCalls.push(axios.get('http://localhost:3000/api/super-admin/companies?limit=50&fields=name,domain,industry,plan,status,createdAt', { headers }));
+        apiCalls.push(axios.get('/api/super-admin/companies?limit=50&fields=name,domain,industry,plan,status,createdAt', { headers }));
         cacheKeys.push(CACHE_KEYS.COMPANIES);
         cacheTTLs.push(CACHE_TTL.COMPANIES);
       }
 
       // 상담사 데이터
       if (skipCache || !apiCache.has(CACHE_KEYS.COUNSELORS)) {
-        apiCalls.push(axios.get('http://localhost:3000/api/counselors', { headers }));
+        apiCalls.push(axios.get('/api/counselors', { headers }));
         cacheKeys.push(CACHE_KEYS.COUNSELORS);
         cacheTTLs.push(CACHE_TTL.COUNSELORS);
       }
 
       // 대기 배정 데이터
       if (skipCache || !apiCache.has(CACHE_KEYS.PENDING_ASSIGNMENTS)) {
-        apiCalls.push(axios.get('http://localhost:3000/api/counseling-sessions/pending-assignments', { headers }));
+        apiCalls.push(axios.get('/api/counseling-sessions/pending-assignments', { headers }));
         cacheKeys.push(CACHE_KEYS.PENDING_ASSIGNMENTS);
         cacheTTLs.push(CACHE_TTL.PENDING_ASSIGNMENTS);
       }
 
       // 정산 데이터
       if (skipCache || !apiCache.has(CACHE_KEYS.COUNSELOR_PAYMENTS)) {
-        apiCalls.push(axios.get('http://localhost:3000/api/counselor-payments', { headers }));
+        apiCalls.push(axios.get('/api/counselor-payments', { headers }));
         cacheKeys.push(CACHE_KEYS.COUNSELOR_PAYMENTS);
         cacheTTLs.push(CACHE_TTL.COUNSELOR_PAYMENTS);
       }
@@ -238,7 +238,7 @@ export const useSuperAdmin = () => {
   const refreshStats = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:3000/api/super-admin/stats', {
+      const response = await axios.get('/api/super-admin/stats', {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -254,7 +254,7 @@ export const useSuperAdmin = () => {
   const refreshCompanies = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:3000/api/super-admin/companies', {
+      const response = await axios.get('/api/super-admin/companies', {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -270,7 +270,7 @@ export const useSuperAdmin = () => {
   const refreshCounselors = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:3000/api/counselors', {
+      const response = await axios.get('/api/counselors', {
         headers: { Authorization: `Bearer ${token}` }
       });
       
