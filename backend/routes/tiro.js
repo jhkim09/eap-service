@@ -86,22 +86,63 @@ router.post('/sessions', async (req, res) => {
         // 1. GPT가 추출한 회사명으로 찾기
         if (analysis.companyName) {
           company = await Company.findOne({ name: analysis.companyName });
+
+          // 회사가 없으면 자동 생성 (Tiro.ai 고객용)
+          if (!company) {
+            console.log(`📝 Creating new company from Tiro.ai: ${analysis.companyName}`);
+            company = await Company.create({
+              name: analysis.companyName,
+              domain: `${analysis.companyName.toLowerCase().replace(/\s+/g, '')}.tiro.auto`,
+              industry: 'Tiro.ai 고객',
+              businessRegistrationNumber: `TIRO-${Date.now()}`,
+              address: '주소 미등록',
+              phone: '전화번호 미등록',
+              email: `contact@${analysis.companyName.toLowerCase().replace(/\s+/g, '')}.tiro.auto`,
+              plan: 'basic',
+              balance: 10000000, // 초기 1000만원
+              isActive: true,
+              settings: {
+                maxEmployees: 100,
+                allowSelfRegistration: false,
+                annualCounselingLimit: 12
+              }
+            });
+            console.log(`✅ New company created: ${company.name} (ID: ${company._id})`);
+          }
         }
 
-        // 2. 없으면 'Tiro.ai 임시' 회사 사용
+        // 2. companyName이 없거나 생성 실패 시 'Tiro.ai 임시' 회사 사용
         if (!company) {
           company = await Company.findOne({ name: 'Tiro.ai 임시' });
+
+          // 'Tiro.ai 임시' 회사도 없으면 생성
+          if (!company) {
+            console.log(`📝 Creating 'Tiro.ai 임시' company`);
+            company = await Company.create({
+              name: 'Tiro.ai 임시',
+              domain: 'tiro-temp.auto',
+              industry: 'Tiro.ai 임시',
+              businessRegistrationNumber: 'TIRO-TEMP-000',
+              address: '주소 미등록',
+              phone: '전화번호 미등록',
+              email: 'temp@tiro.auto',
+              plan: 'basic',
+              balance: 10000000,
+              isActive: true,
+              settings: {
+                maxEmployees: 1000,
+                allowSelfRegistration: false,
+                annualCounselingLimit: 12
+              }
+            });
+            console.log(`✅ Tiro.ai 임시 company created`);
+          }
         }
 
-        // 3. 그것도 없으면 첫 번째 활성 회사 사용
         if (!company) {
-          company = await Company.findOne({ isActive: true });
-        }
-
-        if (!company) {
-          return res.status(400).json({
+          return res.status(500).json({
             success: false,
-            error: 'No active company found. Please create a company first.'
+            error: 'Failed to create or find company for Tiro.ai customer'
           });
         }
 
