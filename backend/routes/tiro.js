@@ -65,8 +65,9 @@ router.post('/sessions', async (req, res) => {
 
       // 고객이 없으면 새로 생성 (기본 회사에 배정)
       if (!employee) {
-        // 기본 회사 찾기 (또는 첫 번째 회사)
-        company = await Company.findOne({ isActive: true });
+        // Tiro.ai 전용 회사 찾기 (없으면 첫 번째 활성 회사 사용)
+        company = await Company.findOne({ name: 'Tiro.ai 임시' }) ||
+                  await Company.findOne({ isActive: true });
 
         if (!company) {
           return res.status(400).json({
