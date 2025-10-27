@@ -181,6 +181,46 @@ const counselingSessionSchema = new mongoose.Schema({
   disputeAdminNotes: {
     type: String,
     trim: true
+  },
+
+  // Tiro.ai 음성 상담 데이터
+  tiroData: {
+    callId: {
+      type: String, // Tiro.ai 통화 고유 ID
+      trim: true
+    },
+    callTimestamp: {
+      type: Date // Tiro.ai 통화 시간
+    },
+    transcript: {
+      type: String // 원본 상담 스크립트 (markdown 형식)
+    },
+    callDuration: {
+      type: Number // 통화 시간 (분 단위)
+    },
+    gptAnalysis: {
+      summary: { type: String }, // GPT-4 분석 요약
+      consultationType: { type: String }, // business, financial, psychological, health
+      mainIssues: [{
+        title: String,
+        description: String,
+        priority: { type: Number, min: 1, max: 5 }
+      }],
+      actionItems: [{
+        task: String,
+        deadline: Date,
+        status: { type: String, enum: ['pending', 'in-progress', 'completed'], default: 'pending' }
+      }],
+      riskLevel: {
+        type: String,
+        enum: ['low', 'medium', 'high']
+      },
+      tags: [String], // 분석 태그
+      analyzedAt: { type: Date, default: Date.now }
+    },
+    customerPhone: {
+      type: String // Tiro.ai에서 전달된 고객 전화번호
+    }
   }
 }, {
   timestamps: true

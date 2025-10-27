@@ -23,6 +23,7 @@ const sharedSessionRoutes = require('./routes/shared-sessions');
 const financialProfileRoutes = require('./routes/financial-profiles');
 const counselingGoalRoutes = require('./routes/counseling-goals');
 const resourceRoutes = require('./routes/resources');
+const tiroRoutes = require('./routes/tiro');
 
 const app = express();
 
@@ -59,6 +60,7 @@ app.use('/api/sessions', sharedSessionRoutes);
 app.use('/api/financial-profiles', financialProfileRoutes);
 app.use('/api/counseling-goals', counselingGoalRoutes);
 app.use('/api/resources', resourceRoutes);
+app.use('/api/tiro', tiroRoutes);
 
 // Health Check API
 app.get('/api/health', (req, res) => {
