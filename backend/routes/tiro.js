@@ -50,16 +50,34 @@ router.post('/sessions', async (req, res) => {
     let company = null;
 
     if (analysis.customerName) {
-      // 이름으로 고객 찾기 (전화번호가 있으면 함께 사용)
-      const searchQuery = customerPhone
-        ? {
+      // 고객 찾기 우선순위: 1) 전화번호 2) 이름+회사명 3) 이름만
+      let searchQuery;
+
+      if (customerPhone) {
+        // 1순위: 전화번호로 검색 (가장 확실한 식별자)
+        searchQuery = {
+          $or: [
+            { phone: customerPhone },
+            { phone: customerPhone.replace(/[^0-9]/g, '') }
+          ]
+        };
+      } else if (analysis.companyName) {
+        // 2순위: 이름 + 회사명으로 검색 (동명이인 방지)
+        // 먼저 회사 찾기
+        const targetCompany = await Company.findOne({ name: analysis.companyName });
+        if (targetCompany) {
+          searchQuery = {
             name: analysis.customerName,
-            $or: [
-              { phone: customerPhone },
-              { phone: customerPhone.replace(/[^0-9]/g, '') }
-            ]
-          }
-        : { name: analysis.customerName };
+            company: targetCompany._id
+          };
+        } else {
+          // 회사가 없으면 이름만으로 검색 (fallback)
+          searchQuery = { name: analysis.customerName };
+        }
+      } else {
+        // 3순위: 이름만으로 검색 (동명이인 위험 있음)
+        searchQuery = { name: analysis.customerName };
+      }
 
       employee = await User.findOne(searchQuery);
 
