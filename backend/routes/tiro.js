@@ -80,17 +80,15 @@ router.post('/sessions', async (req, res) => {
           email: `${analysis.customerName.replace(/\s+/g, '_').toLowerCase()}_${Date.now()}@tiro.temp`,
           password: Math.random().toString(36).slice(-8), // 임시 비밀번호
           phone: customerPhone,
-          company: company.name,
-          companyId: company._id,
+          company: company._id, // ObjectId 사용
           department: '미배정',
           role: 'employee',
-          isActive: true,
-          source: 'tiro-ai' // Tiro.ai로부터 생성된 계정 표시
+          isActive: true
         });
 
         console.log(`✅ New employee created from Tiro.ai: ${employee.name}`);
       } else {
-        company = await Company.findOne({ name: employee.company });
+        company = await Company.findById(employee.company);
       }
     } else {
       return res.status(400).json({
@@ -102,7 +100,7 @@ router.post('/sessions', async (req, res) => {
     // 2. 상담 세션 생성
     const sessionData = {
       employee: employee._id,
-      company: employee.company,
+      company: company.name, // CounselingSession의 company는 String 타입
       appointmentDate: timestamp || new Date(),
       duration: duration || 50,
       status: 'completed', // Tiro.ai 기록은 이미 완료된 상담
@@ -163,7 +161,7 @@ router.post('/sessions', async (req, res) => {
         sessionId: session._id,
         employeeId: employee._id,
         employeeName: employee.name,
-        company: employee.company,
+        company: company.name, // 회사 이름 반환
         tiroCallId: tiroCallId,
         consultationType: analysis.consultationType,
         timestamp: timestamp
