@@ -71,15 +71,15 @@ router.post('/sessions', async (req, res) => {
             company: targetCompany._id
           };
         } else {
-          // 회사가 없으면 이름만으로 검색 (fallback)
-          searchQuery = { name: analysis.customerName };
+          // 회사가 없으면 고객 검색 안 함 (나중에 회사+고객 자동 생성)
+          searchQuery = null;
         }
       } else {
         // 3순위: 이름만으로 검색 (동명이인 위험 있음)
         searchQuery = { name: analysis.customerName };
       }
 
-      employee = await User.findOne(searchQuery);
+      employee = searchQuery ? await User.findOne(searchQuery) : null;
 
       // 고객이 없으면 새로 생성 (회사 배정)
       if (!employee) {
