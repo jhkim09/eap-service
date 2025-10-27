@@ -11,28 +11,33 @@ interface CustomerDetailData {
     company: string;
   };
   tiroSessions: Array<{
-    _id: string;
-    callTimestamp: string;
-    emotionalState?: string;
-    consultationType?: string;
-    mainIssues: string[];
-    recommendedServices: {
-      eap: { needed: boolean; priority: string; reason: string; };
-      financial: { needed: boolean; priority: string; reason: string; };
+    sessionId: string;
+    callId?: string;
+    date: string;
+    duration?: number;
+    transcript?: string;
+    gptAnalysis?: {
+      emotionalState?: string;
+      consultationType?: string;
+      mainIssues?: string[];
+      recommendedServices?: {
+        eap: { needed: boolean; priority: string; reason: string; };
+        financial: { needed: boolean; priority: string; reason: string; };
+      };
+      riskLevel?: string;
     };
-    riskLevel: string;
   }>;
   eapSessions: Array<{
-    _id: string;
-    appointmentDate: string;
+    sessionId: string;
+    date: string;
     status: string;
     topic: string;
     counselor?: { name: string; };
-    urgencyLevel: string;
+    
   }>;
   financialSessions: Array<{
-    _id: string;
-    appointmentDate: string;
+    sessionId: string;
+    date: string;
     status: string;
     topic: string;
     counselor?: { name: string; };
@@ -283,21 +288,21 @@ const CustomerDetail: React.FC<CustomerDetailProps> = ({ user, onLogout }) => {
                   <p className="text-gray-500 text-center py-8">Tiro 세션 기록이 없습니다.</p>
                 ) : (
                   data.tiroSessions.map((session) => (
-                    <div key={session._id} className="border rounded-lg p-4 hover:bg-gray-50">
+                    <div key={session.sessionId} className="border rounded-lg p-4 hover:bg-gray-50">
                       <div className="flex justify-between items-start mb-3">
                         <div>
-                          <p className="font-medium">{formatDate(session.callTimestamp)}</p>
+                          <p className="font-medium">{formatDate(session.date)}</p>
                           <p className="text-sm text-gray-600">
-                            {session.consultationType || '상담'} | {session.emotionalState || '-'}
+                            {session.gptAnalysis?.consultationType || '상담'} | {session.gptAnalysis?.emotionalState || '-'}
                           </p>
                         </div>
-                        {getPriorityBadge(session.riskLevel)}
+                        {getPriorityBadge(session.gptAnalysis?.riskLevel || 'low')}
                       </div>
-                      {session.mainIssues.length > 0 && (
+                      {(session.gptAnalysis?.mainIssues?.length || 0) > 0 && (
                         <div className="mb-3">
                           <p className="text-sm font-medium text-gray-700 mb-1">주요 이슈:</p>
                           <div className="flex flex-wrap gap-2">
-                            {session.mainIssues.map((issue, idx) => (
+                            {session.gptAnalysis?.mainIssues.map((issue, idx) => (
                               <span
                                 key={idx}
                                 className="inline-block px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs"
@@ -308,18 +313,18 @@ const CustomerDetail: React.FC<CustomerDetailProps> = ({ user, onLogout }) => {
                           </div>
                         </div>
                       )}
-                      {(session.recommendedServices.eap.needed || session.recommendedServices.financial.needed) && (
+                      {(session.gptAnalysis?.recommendedServices?.eap?.needed || session.gptAnalysis?.recommendedServices?.financial?.needed) && (
                         <div className="mt-3 pt-3 border-t">
                           <p className="text-sm font-medium text-gray-700 mb-2">추천 서비스:</p>
                           <div className="flex gap-2">
-                            {session.recommendedServices.eap.needed && (
+                            {session.gptAnalysis?.recommendedServices?.eap?.needed && (
                               <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">
-                                🏥 EAP ({session.recommendedServices.eap.priority})
+                                🏥 EAP ({session.gptAnalysis?.recommendedServices?.eap?.priority})
                               </span>
                             )}
-                            {session.recommendedServices.financial.needed && (
+                            {session.gptAnalysis?.recommendedServices?.financial?.needed && (
                               <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">
-                                💰 재무상담 ({session.recommendedServices.financial.priority})
+                                💰 재무상담 ({session.gptAnalysis?.recommendedServices?.financial?.priority})
                               </span>
                             )}
                           </div>
@@ -338,17 +343,17 @@ const CustomerDetail: React.FC<CustomerDetailProps> = ({ user, onLogout }) => {
                   <p className="text-gray-500 text-center py-8">EAP 상담 기록이 없습니다.</p>
                 ) : (
                   data.eapSessions.map((session) => (
-                    <div key={session._id} className="border rounded-lg p-4 hover:bg-gray-50">
+                    <div key={session.sessionId} className="border rounded-lg p-4 hover:bg-gray-50">
                       <div className="flex justify-between items-start mb-2">
                         <div>
-                          <p className="font-medium">{formatDate(session.appointmentDate)}</p>
+                          <p className="font-medium">{formatDate(session.date)}</p>
                           <p className="text-sm text-gray-600">
                             상담사: {session.counselor?.name || '미배정'}
                           </p>
                         </div>
                         <div className="flex gap-2">
                           {getStatusBadge(session.status)}
-                          {getPriorityBadge(session.urgencyLevel)}
+                          
                         </div>
                       </div>
                       <p className="text-sm text-gray-700 mt-2">주제: {session.topic}</p>
@@ -365,10 +370,10 @@ const CustomerDetail: React.FC<CustomerDetailProps> = ({ user, onLogout }) => {
                   <p className="text-gray-500 text-center py-8">재무상담 기록이 없습니다.</p>
                 ) : (
                   data.financialSessions.map((session) => (
-                    <div key={session._id} className="border rounded-lg p-4 hover:bg-gray-50">
+                    <div key={session.sessionId} className="border rounded-lg p-4 hover:bg-gray-50">
                       <div className="flex justify-between items-start mb-2">
                         <div>
-                          <p className="font-medium">{formatDate(session.appointmentDate)}</p>
+                          <p className="font-medium">{formatDate(session.date)}</p>
                           <p className="text-sm text-gray-600">
                             상담사: {session.counselor?.name || '미배정'}
                           </p>
@@ -415,7 +420,7 @@ const CustomerDetail: React.FC<CustomerDetailProps> = ({ user, onLogout }) => {
                             </span>
                           </div>
                           <p className="text-sm text-gray-600">
-                            {formatDate(item.callTimestamp || item.appointmentDate)}
+                            {formatDate(item.date)}
                           </p>
                           {item.topic && (
                             <p className="text-sm text-gray-700 mt-2">{item.topic}</p>
