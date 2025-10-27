@@ -63,11 +63,22 @@ router.post('/sessions', async (req, res) => {
 
       employee = await User.findOne(searchQuery);
 
-      // 고객이 없으면 새로 생성 (기본 회사에 배정)
+      // 고객이 없으면 새로 생성 (회사 배정)
       if (!employee) {
-        // Tiro.ai 전용 회사 찾기 (없으면 첫 번째 활성 회사 사용)
-        company = await Company.findOne({ name: 'Tiro.ai 임시' }) ||
-                  await Company.findOne({ isActive: true });
+        // 1. GPT가 추출한 회사명으로 찾기
+        if (analysis.companyName) {
+          company = await Company.findOne({ name: analysis.companyName });
+        }
+
+        // 2. 없으면 'Tiro.ai 임시' 회사 사용
+        if (!company) {
+          company = await Company.findOne({ name: 'Tiro.ai 임시' });
+        }
+
+        // 3. 그것도 없으면 첫 번째 활성 회사 사용
+        if (!company) {
+          company = await Company.findOne({ isActive: true });
+        }
 
         if (!company) {
           return res.status(400).json({
