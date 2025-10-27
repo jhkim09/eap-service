@@ -191,7 +191,7 @@ router.post('/sessions', async (req, res) => {
         }
       },
 
-      // Tiro.ai 원본 데이터
+     // Tiro.ai 원본 데이터
       tiroData: {
         callId: tiroCallId,
         callTimestamp: timestamp,
@@ -202,12 +202,20 @@ router.post('/sessions', async (req, res) => {
           summary: analysis.summary,
           consultationType: analysis.consultationType,
           mainIssues: analysis.mainIssues || [],
+          emotionalState: analysis.emotionalState,
+          financialMentions: analysis.financialMentions || [],
+          recommendedServices: analysis.recommendedServices || {
+            eap: { needed: false, priority: 'low', reason: '' },
+            financial: { needed: false, priority: 'low', reason: '' }
+          },
+          futureTopics: analysis.futureTopics || [],
           actionItems: analysis.actionItems || [],
           riskLevel: analysis.riskLevel,
           tags: analysis.tags || [],
           analyzedAt: new Date()
         }
       },
+
 
       // 기본 정산 정보
       counselorRate: 50000, // 기본 상담료 (추후 조정 가능)
