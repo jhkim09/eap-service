@@ -24,6 +24,7 @@ const financialProfileRoutes = require('./routes/financial-profiles');
 const counselingGoalRoutes = require('./routes/counseling-goals');
 const resourceRoutes = require('./routes/resources');
 const tiroRoutes = require('./routes/tiro');
+const dashboardRoutes = require('./routes/dashboard');
 
 const app = express();
 
@@ -61,6 +62,7 @@ app.use('/api/financial-profiles', financialProfileRoutes);
 app.use('/api/counseling-goals', counselingGoalRoutes);
 app.use('/api/resources', resourceRoutes);
 app.use('/api/tiro', tiroRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Health Check API
 app.get('/api/health', (req, res) => {
