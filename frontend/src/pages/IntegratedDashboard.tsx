@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import AssignmentModal from '../components/AssignmentModal.tsx';
 
 interface IntegratedDashboardProps {
   user: any;
@@ -60,6 +62,9 @@ interface Recommendation {
 }
 
 const IntegratedDashboard: React.FC<IntegratedDashboardProps> = ({ user, onLogout }) => {
+  const navigate = useNavigate();
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [selectedRecommendation, setSelectedRecommendation] = useState<Recommendation | null>(null);
   const [summary, setSummary] = useState<SummaryData | null>(null);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(true);

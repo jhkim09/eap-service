@@ -10,6 +10,7 @@ import FinancialAdvisorDashboard from './pages/FinancialAdvisorDashboard.tsx';
 import CompanyAdminDashboard from './pages/CompanyAdminDashboard.tsx';
 import SuperAdminDashboard from './pages/SuperAdminDashboard.tsx';
 import IntegratedDashboard from './pages/IntegratedDashboard.tsx';
+import CustomerDetail from './pages/CustomerDetail.tsx';
 
 // Axios 기본 설정
 axios.defaults.baseURL = process.env.REACT_APP_API_URL || 'https://eap-service-lt1r.onrender.com';
@@ -142,6 +143,12 @@ function App() {
             path="/integrated-dashboard"
             element={
               user && user.role === 'super-admin' ? <IntegratedDashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" replace />
+            }
+          />
+          <Route
+            path="/customer-detail/:employeeId"
+            element={
+              user && user.role === 'super-admin' ? <CustomerDetail user={user} onLogout={handleLogout} /> : <Navigate to="/login" replace />
             }
           />
           <Route path="/" element={<Navigate to="/login" replace />} />
