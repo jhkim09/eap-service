@@ -198,26 +198,50 @@ const counselingSessionSchema = new mongoose.Schema({
     callDuration: {
       type: Number // 통화 시간 (분 단위)
     },
+ 
     gptAnalysis: {
       summary: { type: String }, // GPT-4 분석 요약
       consultationType: { type: String }, // business, financial, psychological, health
-      mainIssues: [{
-        title: String,
-        description: String,
-        priority: { type: Number, min: 1, max: 5 }
-      }],
+      mainIssues: [String], // 주요 이슈 목록 (간소화)
+      emotionalState: {
+        type: String, // 감정 상태
+        enum: ['차분함', '보통', '약간불안', '불안', '매우불안', '우울', '화남']
+      },
+      financialMentions: [String], // 재무 관련 언급 키워드
+      recommendedServices: {
+        eap: {
+          needed: { type: Boolean, default: false },
+          priority: {
+            type: String,
+            enum: ['low', 'medium', 'high', 'urgent'],
+            default: 'low'
+          },
+          reason: String
+        },
+        financial: {
+          needed: { type: Boolean, default: false },
+          priority: {
+            type: String,
+            enum: ['low', 'medium', 'high', 'urgent'],
+            default: 'low'
+          },
+          reason: String
+        }
+      },
+      futureTopics: [String], // 추후 상담 소재
       actionItems: [{
         task: String,
-        deadline: Date,
-        status: { type: String, enum: ['pending', 'in-progress', 'completed'], default: 'pending' }
+        priority: { type: String, enum: ['low', 'medium', 'high'], default: 'medium' }
       }],
       riskLevel: {
         type: String,
-        enum: ['low', 'medium', 'high']
+        enum: ['low', 'medium', 'high', 'critical']
       },
       tags: [String], // 분석 태그
       analyzedAt: { type: Date, default: Date.now }
     },
+
+
     customerPhone: {
       type: String // Tiro.ai에서 전달된 고객 전화번호
     }
