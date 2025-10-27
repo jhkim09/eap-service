@@ -464,12 +464,23 @@ const IntegratedDashboard: React.FC<IntegratedDashboardProps> = ({ user, onLogou
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <button
-                            onClick={() => setSelectedCustomer(rec.employee._id)}
-                            className="text-blue-600 hover:text-blue-900 font-medium"
-                          >
-                            상세보기
-                          </button>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => navigate(`/customer-detail/${rec.employee._id}`)}
+                              className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+                            >
+                              상세보기
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedRecommendation(rec);
+                                setIsAssignModalOpen(true);
+                              }}
+                              className="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
+                            >
+                              배정하기
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -509,6 +520,20 @@ const IntegratedDashboard: React.FC<IntegratedDashboardProps> = ({ user, onLogou
           )}
         </div>
       </div>
+
+      {/* Assignment Modal */}
+      <AssignmentModal
+        isOpen={isAssignModalOpen}
+        onClose={() => {
+          setIsAssignModalOpen(false);
+          setSelectedRecommendation(null);
+        }}
+        recommendation={selectedRecommendation}
+        onSuccess={() => {
+          fetchSummary();
+          fetchRecommendations();
+        }}
+      />
     </div>
   );
 };
