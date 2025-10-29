@@ -323,7 +323,7 @@ const FinancialAdvisorDashboard: React.FC<FinancialAdvisorDashboardProps> = ({ u
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  {sessions.slice(0, 5).map(session => (
+                  {sessions.filter(session => session.client).slice(0, 5).map(session => (
                     <div key={session._id} style={{
                       border: '1px solid #e5e7eb',
                       borderRadius: '12px',
@@ -432,8 +432,8 @@ const FinancialAdvisorDashboard: React.FC<FinancialAdvisorDashboardProps> = ({ u
                 </div>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-                  {sessions.filter((session, index, self) => 
-                    index === self.findIndex(s => s.client._id === session.client._id)
+                  {sessions.filter(session => session.client).filter((session, index, self) =>
+                    index === self.findIndex(s => s.client && s.client._id === session.client._id)
                   ).map(session => (
                     <div key={session.client._id} style={{
                       border: '2px solid #e5e7eb',
