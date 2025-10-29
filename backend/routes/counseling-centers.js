@@ -69,6 +69,103 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// 상담센터의 상담사별 통계 조회
+router.get('/:id/counselor-statistics', async (req, res) => {
+  try {
+    if (req.user.role !== 'super-admin') {
+      return res.status(403).json({ message: '권한이 없습니다.' });
+    }
+
+    const CounselingSession = require('../models/CounselingSession');
+
+    const center = await CounselingCenter.findById(req.params.id)
+      .populate('counselors', 'name email totalSessions isActive');
+
+    if (!center) {
+      return res.status(404).json({
+        success: false,
+        message: '상담센터를 찾을 수 없습니다.'
+      });
+    }
+
+    // 날짜 계산
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // 각 상담사별로 통계 수집
+    const statisticsPromises = center.counselors.map(async (counselor) => {
+      // 전체 세션 수
+      const totalSessions = await CounselingSession.countDocuments({
+        counselor: counselor._id
+      });
+
+      // 완료된 세션 수
+      const completedSessions = await CounselingSession.countDocuments({
+        counselor: counselor._id,
+        status: 'completed'
+      });
+
+      // 이번 주 세션 수
+      const weekSessions = await CounselingSession.countDocuments({
+        counselor: counselor._id,
+        date: { $gte: startOfWeek }
+      });
+
+      // 이번 달 세션 수
+      const monthSessions = await CounselingSession.countDocuments({
+        counselor: counselor._id,
+        date: { $gte: startOfMonth }
+      });
+
+      // 완료율 계산
+      const completionRate = totalSessions > 0
+        ? Math.round((completedSessions / totalSessions) * 100)
+        : 0;
+
+      return {
+        counselorId: counselor._id,
+        counselorName: counselor.name,
+        counselorEmail: counselor.email,
+        isActive: counselor.isActive,
+        totalSessions,
+        completedSessions,
+        weekSessions,
+        monthSessions,
+        completionRate
+      };
+    });
+
+    const statistics = await Promise.all(statisticsPromises);
+
+    // 전체 센터 통계
+    const centerStats = {
+      totalCounselors: center.counselors.length,
+      activeCounselors: center.counselors.filter(c => c.isActive).length,
+      totalSessions: statistics.reduce((sum, stat) => sum + stat.totalSessions, 0),
+      totalCompletedSessions: statistics.reduce((sum, stat) => sum + stat.completedSessions, 0),
+      weekSessions: statistics.reduce((sum, stat) => sum + stat.weekSessions, 0),
+      monthSessions: statistics.reduce((sum, stat) => sum + stat.monthSessions, 0)
+    };
+
+    res.json({
+      success: true,
+      centerName: center.name,
+      centerStats,
+      counselorStatistics: statistics
+    });
+  } catch (error) {
+    console.error('상담사 통계 조회 오류:', error);
+    res.status(500).json({
+      success: false,
+      message: '서버 오류가 발생했습니다.'
+    });
+  }
+});
+
 // 새 상담센터 생성
 router.post('/', async (req, res) => {
   try {

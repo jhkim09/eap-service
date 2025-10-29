@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import NotificationBell from '../components/Notifications/NotificationBell.tsx';
+import CounselorPayments from '../components/CounselorPayments.tsx';
 
 interface CounselorDashboardProps {
   user: any;
@@ -28,6 +29,29 @@ interface Appointment {
     recommendations: string;
     followUpNeeded: boolean;
     nextSessionDate?: string;
+  };
+  tiroData?: {
+    callId: string;
+    callTimestamp: string;
+    transcript: string;
+    callDuration: number;
+    customerPhone?: string;
+    gptAnalysis: {
+      summary: string;
+      consultationType: string;
+      mainIssues: string[];
+      emotionalState?: string;
+      financialMentions?: string[];
+      recommendedServices?: {
+        eap?: { needed: boolean; priority: string; reason: string };
+        financial?: { needed: boolean; priority: string; reason: string };
+      };
+      futureTopics?: string[];
+      actionItems?: Array<{ task: string; priority: string }>;
+      riskLevel?: string;
+      tags?: string[];
+      analyzedAt?: string;
+    };
   };
 }
 
@@ -656,6 +680,7 @@ const CounselorDashboard: React.FC<CounselorDashboardProps> = ({ user, onLogout 
               { name: '목표 관리', key: 'goals' },
               { name: '고객 관리', key: 'clients' },
               { name: '통계', key: 'stats' },
+              { name: '정산 내역', key: 'payments' },
               { name: '프로필 설정', key: 'profile' }
             ].map((item, index) => (
               <div
@@ -701,6 +726,7 @@ const CounselorDashboard: React.FC<CounselorDashboardProps> = ({ user, onLogout 
             {activeTab === 'goals' && '목표 관리'}
             {activeTab === 'clients' && '고객 관리'}
             {activeTab === 'stats' && '통계'}
+            {activeTab === 'payments' && '정산 내역'}
             {activeTab === 'profile' && '프로필 설정'}
           </h2>
           <p style={{ color: '#666', margin: '0' }}>
@@ -710,6 +736,7 @@ const CounselorDashboard: React.FC<CounselorDashboardProps> = ({ user, onLogout 
             {activeTab === 'goals' && '직원들의 목표를 생성하고 진행상황을 모니터링하세요'}
             {activeTab === 'clients' && '고객 정보와 상담 이력을 관리하세요'}
             {activeTab === 'stats' && '상담 성과와 통계를 확인하세요'}
+            {activeTab === 'payments' && '월별 정산 내역을 조회하고 관리하세요'}
             {activeTab === 'profile' && '프로필과 세금 설정을 관리하세요'}
           </p>
         </div>
@@ -1665,6 +1692,11 @@ const CounselorDashboard: React.FC<CounselorDashboardProps> = ({ user, onLogout 
           </div>
         )}
 
+        {/* 정산 내역 탭 */}
+        {activeTab === 'payments' && (
+          <CounselorPayments user={user} />
+        )}
+
         {/* 프로필 설정 탭 */}
         {activeTab === 'profile' && (
           <div style={{
@@ -1850,6 +1882,188 @@ const CounselorDashboard: React.FC<CounselorDashboardProps> = ({ user, onLogout 
               <div><strong>💬 주제:</strong> {selectedAppointment.topic}</div>
               <div><strong>🏢 부서:</strong> {selectedAppointment.client.department}</div>
             </div>
+
+            {/* Tiro.ai 음성 상담 데이터 섹션 */}
+            {selectedAppointment.tiroData && (
+              <div style={{
+                backgroundColor: '#e3f2fd',
+                border: '2px solid #2196f3',
+                borderRadius: '8px',
+                padding: '20px',
+                marginBottom: '20px'
+              }}>
+                <h4 style={{ color: '#1976d2', margin: '0 0 15px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  🎙️ Tiro.ai 음성 상담 기록
+                </h4>
+
+                {/* 통화 기본 정보 */}
+                <div style={{
+                  backgroundColor: 'white',
+                  padding: '12px',
+                  borderRadius: '6px',
+                  marginBottom: '15px',
+                  fontSize: '13px'
+                }}>
+                  <div style={{ marginBottom: '6px' }}>
+                    <strong>📞 통화 ID:</strong> {selectedAppointment.tiroData.callId}
+                  </div>
+                  <div style={{ marginBottom: '6px' }}>
+                    <strong>🕐 통화 시간:</strong> {new Date(selectedAppointment.tiroData.callTimestamp).toLocaleString('ko-KR')}
+                  </div>
+                  <div style={{ marginBottom: '6px' }}>
+                    <strong>⏱️ 통화 시간:</strong> {selectedAppointment.tiroData.callDuration}분
+                  </div>
+                  {selectedAppointment.tiroData.customerPhone && (
+                    <div>
+                      <strong>📱 고객 전화:</strong> {selectedAppointment.tiroData.customerPhone}
+                    </div>
+                  )}
+                </div>
+
+                {/* GPT 분석 결과 */}
+                {selectedAppointment.tiroData.gptAnalysis && (
+                  <>
+                    <div style={{
+                      backgroundColor: 'white',
+                      padding: '12px',
+                      borderRadius: '6px',
+                      marginBottom: '12px'
+                    }}>
+                      <div style={{ fontWeight: 'bold', marginBottom: '8px', color: '#1976d2' }}>
+                        📊 AI 분석 요약
+                      </div>
+                      <div style={{ fontSize: '13px', lineHeight: '1.6' }}>
+                        {selectedAppointment.tiroData.gptAnalysis.summary}
+                      </div>
+                    </div>
+
+                    {/* 상담 유형 및 감정 상태 */}
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: '10px',
+                      marginBottom: '12px'
+                    }}>
+                      <div style={{ backgroundColor: 'white', padding: '10px', borderRadius: '6px', fontSize: '13px' }}>
+                        <strong>🏷️ 상담 유형:</strong> {selectedAppointment.tiroData.gptAnalysis.consultationType}
+                      </div>
+                      {selectedAppointment.tiroData.gptAnalysis.emotionalState && (
+                        <div style={{ backgroundColor: 'white', padding: '10px', borderRadius: '6px', fontSize: '13px' }}>
+                          <strong>😊 감정 상태:</strong> {selectedAppointment.tiroData.gptAnalysis.emotionalState}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 주요 이슈 */}
+                    {selectedAppointment.tiroData.gptAnalysis.mainIssues && selectedAppointment.tiroData.gptAnalysis.mainIssues.length > 0 && (
+                      <div style={{
+                        backgroundColor: 'white',
+                        padding: '12px',
+                        borderRadius: '6px',
+                        marginBottom: '12px'
+                      }}>
+                        <div style={{ fontWeight: 'bold', marginBottom: '8px', color: '#1976d2' }}>
+                          ⚠️ 주요 이슈
+                        </div>
+                        <ul style={{ margin: '0', paddingLeft: '20px', fontSize: '13px' }}>
+                          {selectedAppointment.tiroData.gptAnalysis.mainIssues.map((issue, idx) => (
+                            <li key={idx} style={{ marginBottom: '4px' }}>{issue}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* 행동 항목 */}
+                    {selectedAppointment.tiroData.gptAnalysis.actionItems && selectedAppointment.tiroData.gptAnalysis.actionItems.length > 0 && (
+                      <div style={{
+                        backgroundColor: 'white',
+                        padding: '12px',
+                        borderRadius: '6px',
+                        marginBottom: '12px'
+                      }}>
+                        <div style={{ fontWeight: 'bold', marginBottom: '8px', color: '#1976d2' }}>
+                          ✅ 권장 행동 사항
+                        </div>
+                        <ul style={{ margin: '0', paddingLeft: '20px', fontSize: '13px' }}>
+                          {selectedAppointment.tiroData.gptAnalysis.actionItems.map((item, idx) => (
+                            <li key={idx} style={{ marginBottom: '4px' }}>
+                              <span style={{
+                                backgroundColor: item.priority === 'high' ? '#ffebee' : item.priority === 'medium' ? '#fff9c4' : '#f1f8e9',
+                                padding: '2px 6px',
+                                borderRadius: '3px',
+                                fontSize: '11px',
+                                fontWeight: 'bold',
+                                marginRight: '6px'
+                              }}>
+                                {item.priority === 'high' ? '높음' : item.priority === 'medium' ? '중간' : '낮음'}
+                              </span>
+                              {item.task}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* 태그 */}
+                    {selectedAppointment.tiroData.gptAnalysis.tags && selectedAppointment.tiroData.gptAnalysis.tags.length > 0 && (
+                      <div style={{
+                        backgroundColor: 'white',
+                        padding: '12px',
+                        borderRadius: '6px',
+                        marginBottom: '12px'
+                      }}>
+                        <div style={{ fontWeight: 'bold', marginBottom: '8px', color: '#1976d2' }}>
+                          🏷️ 태그
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                          {selectedAppointment.tiroData.gptAnalysis.tags.map((tag, idx) => (
+                            <span key={idx} style={{
+                              backgroundColor: '#e3f2fd',
+                              color: '#1976d2',
+                              padding: '4px 10px',
+                              borderRadius: '12px',
+                              fontSize: '12px',
+                              fontWeight: '500'
+                            }}>
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 원본 통화 내용 (접을 수 있게) */}
+                    <details style={{
+                      backgroundColor: 'white',
+                      padding: '12px',
+                      borderRadius: '6px'
+                    }}>
+                      <summary style={{
+                        fontWeight: 'bold',
+                        color: '#1976d2',
+                        cursor: 'pointer',
+                        marginBottom: '8px'
+                      }}>
+                        📝 원본 통화 스크립트 보기
+                      </summary>
+                      <div style={{
+                        fontSize: '12px',
+                        lineHeight: '1.6',
+                        whiteSpace: 'pre-wrap',
+                        maxHeight: '300px',
+                        overflowY: 'auto',
+                        padding: '10px',
+                        backgroundColor: '#f5f5f5',
+                        borderRadius: '4px',
+                        marginTop: '8px'
+                      }}>
+                        {selectedAppointment.tiroData.transcript}
+                      </div>
+                    </details>
+                  </>
+                )}
+              </div>
+            )}
 
             <div style={{ marginBottom: '20px' }}>
               <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333' }}>

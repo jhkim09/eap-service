@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { paymentService, formatCurrency } from '../services/paymentService';
 import NotificationBell from '../components/Notifications/NotificationBell.tsx';
 // import CounselorsManagement from '../components/SuperAdmin/CounselorsManagement';
 // import CentersManagement from '../components/SuperAdmin/CentersManagement';
@@ -151,6 +152,8 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ user, onLogou
   // 상담센터 관리 모달
   const [editingCenter, setEditingCenter] = useState<any>(null);
   const [viewingCenterDetail, setViewingCenterDetail] = useState<any>(null);
+  const [centerStatistics, setCenterStatistics] = useState<any>(null);
+  const [loadingStatistics, setLoadingStatistics] = useState(false);
   const [centerForm, setCenterForm] = useState<any>({});
   const [showAddCenterModal, setShowAddCenterModal] = useState(false);
   const [newCenterForm, setNewCenterForm] = useState<any>({
@@ -161,6 +164,7 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ user, onLogou
     businessLicense: '',
     isActive: true
   });
+  const [counselorEmailToAdd, setCounselorEmailToAdd] = useState('');
 
   // 정산관리 관련 상태
   const [selectedCounselorForSessions, setSelectedCounselorForSessions] = useState<string | null>(null);
@@ -796,32 +800,17 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ user, onLogou
   // 정산 상태 변경
   const handlePaymentStatusChange = async (paymentId: string, newStatus: string) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.put(`/api/counselor-payments/${paymentId}/status`, {
-        status: newStatus
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      setCounselorPayments(prev => prev.map(payment =>
-        payment._id === paymentId
-          ? { ...payment, status: newStatus as const, updatedAt: new Date().toISOString() }
-          : payment
-      ));
-      
+      await paymentService.updatePaymentStatus(paymentId, newStatus);
+
+      // 정산 목록 새로고침
+      const updatedPayments = await paymentService.getPayments();
+      setCounselorPayments(updatedPayments.payments);
+
       const statusName = getPaymentStatusName(newStatus);
       alert(`정산 상태가 "${statusName}"로 변경되었습니다.`);
     } catch (error) {
       console.error('정산 상태 변경 오류:', error);
-      // 데모 모드에서도 작동
-      setCounselorPayments(prev => prev.map(payment =>
-        payment._id === paymentId
-          ? { ...payment, status: newStatus as const, updatedAt: new Date().toISOString() }
-          : payment
-      ));
-      
-      const statusName = getPaymentStatusName(newStatus);
-      alert(`정산 상태가 "${statusName}"로 변경되었습니다! (데모 모드)`);
+      alert('정산 상태 변경에 실패했습니다.');
     }
   };
 
@@ -958,9 +947,28 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ user, onLogou
         headers: { Authorization: `Bearer ${token}` }
       });
       setViewingCenterDetail(response.data.center);
+
+      // 통계 데이터도 함께 로드
+      await fetchCenterStatistics(center._id);
     } catch (error) {
       console.error('상담센터 상세 조회 오류:', error);
       setViewingCenterDetail(center);
+    }
+  };
+
+  const fetchCenterStatistics = async (centerId: string) => {
+    setLoadingStatistics(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`/api/counseling-centers/${centerId}/counselor-statistics`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setCenterStatistics(response.data);
+    } catch (error) {
+      console.error('센터 통계 조회 오류:', error);
+      setCenterStatistics(null);
+    } finally {
+      setLoadingStatistics(false);
     }
   };
 
@@ -980,23 +988,57 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ user, onLogou
 
   const handleSaveCenterEdit = async () => {
     if (!editingCenter) return;
-    
+
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.put(`/api/counseling-centers/${editingCenter._id}`, centerForm, {
+
+      // 백엔드 API 구조에 맞게 데이터 포맷팅
+      const formattedData = {
+        name: centerForm.name,
+        type: centerForm.type || 'center',
+        address: typeof centerForm.address === 'string' ? {
+          street: centerForm.address,
+          city: '',
+          state: '',
+          zipCode: '',
+          country: '대한민국'
+        } : centerForm.address,
+        contact: typeof centerForm.contact === 'string' ? {
+          phone: centerForm.contact,
+          email: '',
+          website: ''
+        } : centerForm.contact,
+        specialties: centerForm.specialties || editingCenter.specialties || ['심리치료'],
+        operatingHours: centerForm.operatingHours || editingCenter.operatingHours || {
+          monday: { start: '09:00', end: '18:00', isOpen: true },
+          tuesday: { start: '09:00', end: '18:00', isOpen: true },
+          wednesday: { start: '09:00', end: '18:00', isOpen: true },
+          thursday: { start: '09:00', end: '18:00', isOpen: true },
+          friday: { start: '09:00', end: '18:00', isOpen: true },
+          saturday: { isOpen: false },
+          sunday: { isOpen: false }
+        },
+        settings: centerForm.settings || editingCenter.settings || {
+          maxCounselors: 10,
+          allowOnlineBooking: true,
+          requireApproval: false
+        }
+      };
+
+      const response = await axios.put(`/api/counseling-centers/${editingCenter._id}`, formattedData, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       setCounselingCenters(prev => prev.map(center =>
-        center._id === editingCenter._id ? { ...center, ...centerForm } : center
+        center._id === editingCenter._id ? (response.data.center || response.data) : center
       ));
-      
+
       setEditingCenter(null);
       setCenterForm({});
       alert('상담센터가 성공적으로 수정되었습니다.');
     } catch (error) {
       console.error('상담센터 수정 오류:', error);
-      alert('상담센터 수정 중 오류가 발생했습니다.');
+      alert('상담센터 수정 중 오류가 발생했습니다: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -1005,14 +1047,58 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ user, onLogou
       alert('센터명을 입력해주세요.');
       return;
     }
-    
+
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post('/api/counseling-centers', newCenterForm, {
+
+      // 백엔드 API 구조에 맞게 데이터 포맷팅
+      const formattedData = {
+        name: newCenterForm.name,
+        type: newCenterForm.type || 'center',
+        address: typeof newCenterForm.address === 'string' ? {
+          street: newCenterForm.address,
+          city: '',
+          state: '',
+          zipCode: '',
+          country: '대한민국'
+        } : (newCenterForm.address || {
+          street: '',
+          city: '',
+          state: '',
+          zipCode: '',
+          country: '대한민국'
+        }),
+        contact: typeof newCenterForm.contact === 'string' ? {
+          phone: newCenterForm.contact,
+          email: '',
+          website: ''
+        } : (newCenterForm.contact || {
+          phone: '',
+          email: '',
+          website: ''
+        }),
+        specialties: newCenterForm.specialties || ['심리치료'],
+        operatingHours: newCenterForm.operatingHours || {
+          monday: { start: '09:00', end: '18:00', isOpen: true },
+          tuesday: { start: '09:00', end: '18:00', isOpen: true },
+          wednesday: { start: '09:00', end: '18:00', isOpen: true },
+          thursday: { start: '09:00', end: '18:00', isOpen: true },
+          friday: { start: '09:00', end: '18:00', isOpen: true },
+          saturday: { isOpen: false },
+          sunday: { isOpen: false }
+        },
+        settings: newCenterForm.settings || {
+          maxCounselors: 10,
+          allowOnlineBooking: true,
+          requireApproval: false
+        }
+      };
+
+      const response = await axios.post('/api/counseling-centers', formattedData, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
-      setCounselingCenters(prev => [...prev, response.data.center]);
+
+      setCounselingCenters(prev => [...prev, response.data.center || response.data]);
       setShowAddCenterModal(false);
       setNewCenterForm({
         name: '',
@@ -1026,6 +1112,70 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ user, onLogou
     } catch (error) {
       console.error('상담센터 등록 오류:', error);
       alert('상담센터 등록 중 오류가 발생했습니다: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const handleDeleteCenter = async (centerId: string, centerName: string) => {
+    if (!window.confirm(`정말로 "${centerName}" 센터를 삭제하시겠습니까?\n\n이 작업은 취소할 수 없으며, 센터에 소속된 모든 상담사의 연결이 해제됩니다.`)) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`/api/counseling-centers/${centerId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      setCounselingCenters(prev => prev.filter(center => center._id !== centerId));
+      alert('상담센터가 성공적으로 삭제되었습니다.');
+    } catch (error) {
+      console.error('상담센터 삭제 오류:', error);
+      alert('상담센터 삭제 중 오류가 발생했습니다: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const handleAddCounselorToCenter = async (centerId: string, counselorEmail: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(`/api/counseling-centers/${centerId}/counselors`,
+        { counselorEmail },
+        { headers: { Authorization: `Bearer ${token}` }}
+      );
+
+      // 센터 정보 다시 조회
+      const response = await axios.get(`/api/counseling-centers/${centerId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      setViewingCenterDetail(response.data.center || response.data);
+      alert('상담사가 성공적으로 배정되었습니다.');
+    } catch (error) {
+      console.error('상담사 배정 오류:', error);
+      alert('상담사 배정 중 오류가 발생했습니다: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const handleRemoveCounselorFromCenter = async (centerId: string, counselorId: string, counselorName: string) => {
+    if (!window.confirm(`"${counselorName}" 상담사를 센터에서 제거하시겠습니까?`)) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`/api/counseling-centers/${centerId}/counselors/${counselorId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      // 센터 정보 다시 조회
+      const response = await axios.get(`/api/counseling-centers/${centerId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      setViewingCenterDetail(response.data.center || response.data);
+      alert('상담사가 성공적으로 제거되었습니다.');
+    } catch (error) {
+      console.error('상담사 제거 오류:', error);
+      alert('상담사 제거 중 오류가 발생했습니다: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -2808,8 +2958,8 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ user, onLogou
           boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
         }}>
           <h3 style={{ color: '#333', marginBottom: '20px' }}>💰 정산 관리</h3>
-          
-          {/* 정산 현황 카드 */}
+
+          {/* 정산 현황 카드 - 실제 데이터 기반 */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
@@ -2823,7 +2973,13 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ user, onLogou
               border: '1px solid #ffcc02'
             }}>
               <h5 style={{ color: '#f57c00', margin: '0 0 8px 0', fontSize: '14px' }}>⏳ 정산 대기</h5>
-              <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '0', color: '#f57c00' }}>₩680,000</p>
+              <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '0', color: '#f57c00' }}>
+                {formatCurrency(
+                  counselorPayments
+                    .filter(p => p.status === 'pending')
+                    .reduce((sum, p) => sum + (p.summary?.netAmount || 0), 0)
+                )}
+              </p>
             </div>
             <div style={{
               backgroundColor: '#e8f5e8',
@@ -2831,8 +2987,29 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ user, onLogou
               borderRadius: '8px',
               border: '1px solid #c8e6c9'
             }}>
-              <h5 style={{ color: '#388e3c', margin: '0 0 8px 0', fontSize: '14px' }}>✅ 정산완료</h5>
-              <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '0', color: '#388e3c' }}>₩1,000,000</p>
+              <h5 style={{ color: '#388e3c', margin: '0 0 8px 0', fontSize: '14px' }}>✅ 승인됨</h5>
+              <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '0', color: '#388e3c' }}>
+                {formatCurrency(
+                  counselorPayments
+                    .filter(p => p.status === 'approved')
+                    .reduce((sum, p) => sum + (p.summary?.netAmount || 0), 0)
+                )}
+              </p>
+            </div>
+            <div style={{
+              backgroundColor: '#e1f5fe',
+              padding: '15px',
+              borderRadius: '8px',
+              border: '1px solid #b3e5fc'
+            }}>
+              <h5 style={{ color: '#0288d1', margin: '0 0 8px 0', fontSize: '14px' }}>💳 지급완료</h5>
+              <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '0', color: '#0288d1' }}>
+                {formatCurrency(
+                  counselorPayments
+                    .filter(p => p.status === 'paid')
+                    .reduce((sum, p) => sum + (p.summary?.netAmount || 0), 0)
+                )}
+              </p>
             </div>
             <div style={{
               backgroundColor: '#ffebee',
@@ -2841,138 +3018,146 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ user, onLogou
               border: '1px solid #ffcdd2'
             }}>
               <h5 style={{ color: '#c62828', margin: '0 0 8px 0', fontSize: '14px' }}>⚠️ 이의제기</h5>
-              <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '0', color: '#c62828' }}>₩80,000</p>
+              <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '0', color: '#c62828' }}>
+                {formatCurrency(
+                  counselorPayments
+                    .filter(p => p.status === 'dispute')
+                    .reduce((sum, p) => sum + (p.summary?.netAmount || 0), 0)
+                )}
+              </p>
             </div>
           </div>
 
-          {/* 상담사별 정산 목록 */}
+          {/* 상담사별 정산 목록 - 실제 데이터 */}
           <div>
-            <h4 style={{ color: '#333', marginBottom: '15px' }}>👥 상담사별 정산 내역 (8월)</h4>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#f8f9fa' }}>
-                    <th style={{ padding: '12px', textAlign: 'left', border: '1px solid #dee2e6' }}>상담사</th>
-                    <th style={{ padding: '12px', textAlign: 'left', border: '1px solid #dee2e6' }}>세션 수</th>
-                    <th style={{ padding: '12px', textAlign: 'left', border: '1px solid #dee2e6' }}>총 금액</th>
-                    <th style={{ padding: '12px', textAlign: 'left', border: '1px solid #dee2e6' }}>세금</th>
-                    <th style={{ padding: '12px', textAlign: 'left', border: '1px solid #dee2e6' }}>실수령액</th>
-                    <th style={{ padding: '12px', textAlign: 'left', border: '1px solid #dee2e6' }}>상태</th>
-                    <th style={{ padding: '12px', textAlign: 'left', border: '1px solid #dee2e6' }}>작업</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {['김상담사', '이상담사', '박상담사', '최상담사', '정상담사'].map((name, i) => {
-                    const sessions = Math.floor(Math.random() * 20) + 10;
-                    const totalAmount = sessions * 80000;
-                    const tax = totalAmount * (i % 2 === 0 ? 0.033 : 0.1); // 상담사별 다른 세율
-                    const netAmount = totalAmount - tax;
-                    const statusOptions = ['pending', 'completed', 'dispute'];
-                    const status = statusOptions[i % statusOptions.length];
-                    const statusColor = getPaymentStatusColor(status);
-                    
-                    return (
-                      <tr key={i}>
-                        <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>
-                          <strong>{name}</strong>
-                          <div style={{ fontSize: '12px', color: '#666' }}>
-                            세율: {i % 2 === 0 ? '3.3%' : '10%'}
-                          </div>
-                        </td>
-                        <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>
-                          <button
-                            onClick={() => fetchCounselorSessions(`counselor_${i}`, name)}
-                            style={{
-                              backgroundColor: 'transparent',
-                              border: '1px solid #1976d2',
-                              color: '#1976d2',
-                              padding: '4px 8px',
-                              borderRadius: '4px',
-                              cursor: 'pointer',
-                              fontSize: '12px'
-                            }}
-                          >
-                            {sessions}건 보기
-                          </button>
-                        </td>
-                        <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>
-                          ₩{totalAmount.toLocaleString()}
-                        </td>
-                        <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>
-                          ₩{Math.floor(tax).toLocaleString()}
-                        </td>
-                        <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>
-                          <strong>₩{Math.floor(netAmount).toLocaleString()}</strong>
-                        </td>
-                        <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>
-                          <span style={{
-                            padding: '4px 12px',
-                            borderRadius: '12px',
-                            fontSize: '12px',
-                            backgroundColor: statusColor.bg,
-                            color: statusColor.text
-                          }}>
-                            {getPaymentStatusName(status)}
-                          </span>
-                        </td>
-                        <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>
-                          <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
-                            {status === 'pending' && (
-                              <button 
-                                onClick={() => handlePaymentStatusChange(`payment_${i}`, 'completed')}
-                                style={{
-                                  backgroundColor: '#2e7d32',
-                                  color: 'white',
-                                  border: 'none',
-                                  padding: '4px 8px',
-                                  borderRadius: '3px',
-                                  fontSize: '11px',
-                                  cursor: 'pointer'
-                                }}>
-                                정산완료
-                              </button>
-                            )}
-                            {status === 'completed' && (
-                              <span style={{ color: '#666', fontSize: '11px' }}>처리완료</span>
-                            )}
-                            {status !== 'completed' && status !== 'dispute' && (
-                              <button 
-                                onClick={() => handlePaymentStatusChange(`payment_${i}`, 'dispute')}
-                                style={{
-                                  backgroundColor: '#c62828',
-                                  color: 'white',
-                                  border: 'none',
-                                  padding: '4px 8px',
-                                  borderRadius: '3px',
-                                  fontSize: '11px',
-                                  cursor: 'pointer'
-                                }}>
-                                이의제기
-                              </button>
-                            )}
-                            {status === 'dispute' && (
-                              <button 
-                                onClick={() => handlePaymentStatusChange(`payment_${i}`, 'pending')}
-                                style={{
-                                  backgroundColor: '#ef6c00',
-                                  color: 'white',
-                                  border: 'none',
-                                  padding: '4px 8px',
-                                  borderRadius: '3px',
-                                  fontSize: '11px',
-                                  cursor: 'pointer'
-                                }}>
-                                대기로 복원
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <h4 style={{ color: '#333', marginBottom: '15px' }}>👥 상담사별 정산 내역</h4>
+            {counselorPayments.length === 0 ? (
+              <div style={{
+                padding: '40px',
+                textAlign: 'center',
+                backgroundColor: '#f8f9fa',
+                borderRadius: '8px',
+                color: '#666'
+              }}>
+                정산 내역이 없습니다.
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f8f9fa' }}>
+                      <th style={{ padding: '12px', textAlign: 'left', border: '1px solid #dee2e6' }}>상담사</th>
+                      <th style={{ padding: '12px', textAlign: 'left', border: '1px solid #dee2e6' }}>기간</th>
+                      <th style={{ padding: '12px', textAlign: 'left', border: '1px solid #dee2e6' }}>세션 수</th>
+                      <th style={{ padding: '12px', textAlign: 'left', border: '1px solid #dee2e6' }}>총 금액</th>
+                      <th style={{ padding: '12px', textAlign: 'left', border: '1px solid #dee2e6' }}>세금</th>
+                      <th style={{ padding: '12px', textAlign: 'left', border: '1px solid #dee2e6' }}>실수령액</th>
+                      <th style={{ padding: '12px', textAlign: 'left', border: '1px solid #dee2e6' }}>상태</th>
+                      <th style={{ padding: '12px', textAlign: 'left', border: '1px solid #dee2e6' }}>작업</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {counselorPayments.map((payment) => {
+                      const statusColor = getPaymentStatusColor(payment.status);
+
+                      return (
+                        <tr key={payment._id}>
+                          <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>
+                            <strong>{payment.counselor?.name || '알 수 없음'}</strong>
+                            <div style={{ fontSize: '12px', color: '#666' }}>
+                              {payment.counselor?.email || ''}
+                            </div>
+                          </td>
+                          <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>
+                            {payment.year}년 {payment.month}월
+                          </td>
+                          <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>
+                            {payment.summary?.totalSessions || 0}건
+                            <div style={{ fontSize: '11px', color: '#666' }}>
+                              대면: {payment.summary?.faceToFaceSessions || 0} /
+                              화상: {payment.summary?.phoneVideoSessions || 0} /
+                              채팅: {payment.summary?.chatSessions || 0}
+                            </div>
+                          </td>
+                          <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>
+                            {formatCurrency(payment.summary?.totalAmount || 0)}
+                          </td>
+                          <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>
+                            {formatCurrency(payment.summary?.taxAmount || 0)}
+                          </td>
+                          <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>
+                            <strong>{formatCurrency(payment.summary?.netAmount || 0)}</strong>
+                          </td>
+                          <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>
+                            <span style={{
+                              padding: '4px 12px',
+                              borderRadius: '12px',
+                              fontSize: '12px',
+                              backgroundColor: statusColor.bg,
+                              color: statusColor.text
+                            }}>
+                              {getPaymentStatusName(payment.status)}
+                            </span>
+                          </td>
+                          <td style={{ padding: '12px', border: '1px solid #dee2e6' }}>
+                            <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                              {payment.status === 'pending' && (
+                                <button
+                                  onClick={() => handlePaymentStatusChange(payment._id, 'approved')}
+                                  style={{
+                                    backgroundColor: '#2e7d32',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '4px 8px',
+                                    borderRadius: '3px',
+                                    fontSize: '11px',
+                                    cursor: 'pointer'
+                                  }}>
+                                  승인
+                                </button>
+                              )}
+                              {payment.status === 'approved' && (
+                                <button
+                                  onClick={() => handlePaymentStatusChange(payment._id, 'paid')}
+                                  style={{
+                                    backgroundColor: '#1976d2',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '4px 8px',
+                                    borderRadius: '3px',
+                                    fontSize: '11px',
+                                    cursor: 'pointer'
+                                  }}>
+                                  지급완료
+                                </button>
+                              )}
+                              {payment.status === 'paid' && (
+                                <span style={{ color: '#666', fontSize: '11px' }}>지급완료</span>
+                              )}
+                              {payment.status === 'dispute' && (
+                                <button
+                                  onClick={() => handlePaymentStatusChange(payment._id, 'pending')}
+                                  style={{
+                                    backgroundColor: '#ef6c00',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '4px 8px',
+                                    borderRadius: '3px',
+                                    fontSize: '11px',
+                                    cursor: 'pointer'
+                                  }}>
+                                  대기로 복원
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -3015,7 +3200,7 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ user, onLogou
               borderBottom: '1px solid #e1e1e1',
               fontWeight: 'bold',
               display: 'grid',
-              gridTemplateColumns: '200px 150px 200px 100px 100px 80px 150px',
+              gridTemplateColumns: '200px 150px 200px 100px 100px 80px 200px',
               gap: '15px',
               alignItems: 'center'
             }}>
@@ -3056,7 +3241,7 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ user, onLogou
                   padding: '20px',
                   borderBottom: index < counselingCenters.length - 1 ? '1px solid #f0f0f0' : 'none',
                   display: 'grid',
-                  gridTemplateColumns: '200px 150px 200px 100px 100px 80px 150px',
+                  gridTemplateColumns: '200px 150px 200px 100px 100px 80px 200px',
                   gap: '15px',
                   alignItems: 'center'
                 }}>
@@ -3112,6 +3297,20 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ user, onLogou
                       }}
                     >
                       편집
+                    </button>
+                    <button
+                      onClick={() => handleDeleteCenter(center._id, center.name)}
+                      style={{
+                        backgroundColor: '#f44336',
+                        color: 'white',
+                        border: 'none',
+                        padding: '6px 12px',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '12px'
+                      }}
+                    >
+                      삭제
                     </button>
                   </div>
                 </div>
@@ -3805,6 +4004,157 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ user, onLogou
               />
             </div>
 
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>전문분야</label>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '8px',
+                padding: '10px',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                backgroundColor: '#f9f9f9'
+              }}>
+                {['재무상담', '법률상담', '스트레스 관리', '직장 내 갈등', '업무 효율성', '워라밸', '진로 상담', '심리치료', '가족상담', '중독치료', '정신건강', '기타'].map(specialty => (
+                  <label key={specialty} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px' }}>
+                    <input
+                      type="checkbox"
+                      checked={(centerForm.specialties || editingCenter?.specialties || []).includes(specialty)}
+                      onChange={(e) => {
+                        const currentSpecialties = centerForm.specialties || editingCenter?.specialties || [];
+                        if (e.target.checked) {
+                          setCenterForm(prev => ({
+                            ...prev,
+                            specialties: [...currentSpecialties, specialty]
+                          }));
+                        } else {
+                          setCenterForm(prev => ({
+                            ...prev,
+                            specialties: currentSpecialties.filter(s => s !== specialty)
+                          }));
+                        }
+                      }}
+                    />
+                    {specialty}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* 운영시간 관리 */}
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>운영시간</label>
+              <div style={{
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                padding: '12px',
+                backgroundColor: '#f9f9f9'
+              }}>
+                {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(day => {
+                  const dayNames = {
+                    monday: '월요일',
+                    tuesday: '화요일',
+                    wednesday: '수요일',
+                    thursday: '목요일',
+                    friday: '금요일',
+                    saturday: '토요일',
+                    sunday: '일요일'
+                  };
+
+                  const currentHours = centerForm.operatingHours?.[day] || editingCenter?.operatingHours?.[day] || { start: '09:00', end: '18:00', isOpen: day !== 'saturday' && day !== 'sunday' };
+
+                  return (
+                    <div key={day} style={{
+                      display: 'grid',
+                      gridTemplateColumns: '80px 1fr',
+                      gap: '10px',
+                      alignItems: 'center',
+                      marginBottom: '8px',
+                      paddingBottom: '8px',
+                      borderBottom: day !== 'sunday' ? '1px solid #e0e0e0' : 'none'
+                    }}>
+                      <div style={{ fontSize: '13px', fontWeight: '500' }}>
+                        {dayNames[day]}
+                      </div>
+                      <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          <input
+                            type="checkbox"
+                            checked={currentHours.isOpen}
+                            onChange={(e) => {
+                              setCenterForm(prev => ({
+                                ...prev,
+                                operatingHours: {
+                                  ...(prev.operatingHours || editingCenter?.operatingHours || {}),
+                                  [day]: {
+                                    ...currentHours,
+                                    isOpen: e.target.checked
+                                  }
+                                }
+                              }));
+                            }}
+                          />
+                          <span style={{ fontSize: '12px' }}>영업</span>
+                        </label>
+                        {currentHours.isOpen && (
+                          <>
+                            <input
+                              type="time"
+                              value={currentHours.start || '09:00'}
+                              onChange={(e) => {
+                                setCenterForm(prev => ({
+                                  ...prev,
+                                  operatingHours: {
+                                    ...(prev.operatingHours || editingCenter?.operatingHours || {}),
+                                    [day]: {
+                                      ...currentHours,
+                                      start: e.target.value
+                                    }
+                                  }
+                                }));
+                              }}
+                              style={{
+                                padding: '4px 8px',
+                                border: '1px solid #ddd',
+                                borderRadius: '4px',
+                                fontSize: '12px'
+                              }}
+                            />
+                            <span style={{ fontSize: '12px' }}>~</span>
+                            <input
+                              type="time"
+                              value={currentHours.end || '18:00'}
+                              onChange={(e) => {
+                                setCenterForm(prev => ({
+                                  ...prev,
+                                  operatingHours: {
+                                    ...(prev.operatingHours || editingCenter?.operatingHours || {}),
+                                    [day]: {
+                                      ...currentHours,
+                                      end: e.target.value
+                                    }
+                                  }
+                                }));
+                              }}
+                              style={{
+                                padding: '4px 8px',
+                                border: '1px solid #ddd',
+                                borderRadius: '4px',
+                                fontSize: '12px'
+                              }}
+                            />
+                          </>
+                        )}
+                        {!currentHours.isOpen && (
+                          <span style={{ fontSize: '12px', color: '#999' }}>휴무</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
             <div style={{ marginBottom: '20px' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <input
@@ -3925,6 +4275,79 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ user, onLogou
               </div>
             </div>
 
+            {viewingCenterDetail.specialties && viewingCenterDetail.specialties.length > 0 && (
+              <div style={{ marginTop: '20px' }}>
+                <h4 style={{ marginBottom: '10px', color: '#333' }}>전문분야</h4>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {viewingCenterDetail.specialties.map((specialty, idx) => (
+                    <span key={idx} style={{
+                      padding: '6px 12px',
+                      backgroundColor: '#e3f2fd',
+                      color: '#1976d2',
+                      borderRadius: '16px',
+                      fontSize: '13px',
+                      fontWeight: '500'
+                    }}>
+                      {specialty}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 운영시간 표시 */}
+            {viewingCenterDetail.operatingHours && (
+              <div style={{ marginTop: '20px' }}>
+                <h4 style={{ marginBottom: '10px', color: '#333' }}>운영시간</h4>
+                <div style={{
+                  border: '1px solid #e0e0e0',
+                  borderRadius: '4px',
+                  overflow: 'hidden'
+                }}>
+                  {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day, idx) => {
+                    const dayNames = {
+                      monday: '월요일',
+                      tuesday: '화요일',
+                      wednesday: '수요일',
+                      thursday: '목요일',
+                      friday: '금요일',
+                      saturday: '토요일',
+                      sunday: '일요일'
+                    };
+
+                    const hours = viewingCenterDetail.operatingHours[day];
+
+                    return (
+                      <div
+                        key={day}
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: '100px 1fr',
+                          gap: '15px',
+                          padding: '12px 15px',
+                          borderBottom: idx < 6 ? '1px solid #e0e0e0' : 'none',
+                          backgroundColor: idx % 2 === 0 ? '#fff' : '#f9f9f9'
+                        }}
+                      >
+                        <div style={{ fontWeight: '500', color: '#333' }}>
+                          {dayNames[day]}
+                        </div>
+                        <div style={{ color: hours?.isOpen ? '#2e7d32' : '#999' }}>
+                          {hours?.isOpen ? (
+                            <span>
+                              {hours.start} ~ {hours.end}
+                            </span>
+                          ) : (
+                            <span>휴무</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {viewingCenterDetail.description && (
               <div style={{ marginTop: '20px' }}>
                 <h4 style={{ marginBottom: '10px', color: '#333' }}>센터 설명</h4>
@@ -3934,9 +4357,293 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ user, onLogou
               </div>
             )}
 
+            {/* 상담사 관리 섹션 */}
+            <div style={{ marginTop: '20px' }}>
+              <h4 style={{ marginBottom: '10px', color: '#333' }}>소속 상담사 관리</h4>
+
+              {/* 상담사 추가 */}
+              <div style={{ marginBottom: '15px', padding: '15px', backgroundColor: '#f9f9f9', borderRadius: '4px' }}>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <input
+                    type="email"
+                    value={counselorEmailToAdd}
+                    onChange={(e) => setCounselorEmailToAdd(e.target.value)}
+                    placeholder="상담사 이메일을 입력하세요"
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      border: '1px solid #ddd',
+                      borderRadius: '4px',
+                      fontSize: '14px'
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      if (counselorEmailToAdd.trim()) {
+                        handleAddCounselorToCenter(viewingCenterDetail._id, counselorEmailToAdd.trim());
+                        setCounselorEmailToAdd('');
+                      } else {
+                        alert('상담사 이메일을 입력해주세요.');
+                      }
+                    }}
+                    style={{
+                      backgroundColor: '#2e7d32',
+                      color: 'white',
+                      border: 'none',
+                      padding: '8px 16px',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    + 상담사 배정
+                  </button>
+                </div>
+                <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#666' }}>
+                  💡 배정하려는 상담사는 반드시 'counselor' 역할로 등록되어 있어야 합니다.
+                </p>
+              </div>
+
+              {/* 현재 소속 상담사 목록 */}
+              {viewingCenterDetail.counselors && viewingCenterDetail.counselors.length > 0 ? (
+                <div>
+                  <div style={{ marginBottom: '8px', fontSize: '14px', color: '#666' }}>
+                    현재 {viewingCenterDetail.counselors.length}명의 상담사가 소속되어 있습니다.
+                  </div>
+                  <div style={{ border: '1px solid #e0e0e0', borderRadius: '4px', overflow: 'hidden' }}>
+                    {viewingCenterDetail.counselors.map((counselor, idx) => (
+                      <div
+                        key={counselor._id}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '12px 15px',
+                          borderBottom: idx < viewingCenterDetail.counselors.length - 1 ? '1px solid #e0e0e0' : 'none',
+                          backgroundColor: idx % 2 === 0 ? '#fff' : '#f9f9f9'
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>{counselor.name}</div>
+                          <div style={{ fontSize: '13px', color: '#666' }}>{counselor.email}</div>
+                        </div>
+                        <button
+                          onClick={() => handleRemoveCounselorFromCenter(
+                            viewingCenterDetail._id,
+                            counselor._id,
+                            counselor.name
+                          )}
+                          style={{
+                            backgroundColor: '#f44336',
+                            color: 'white',
+                            border: 'none',
+                            padding: '6px 12px',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '13px'
+                          }}
+                        >
+                          제거
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div style={{
+                  padding: '20px',
+                  textAlign: 'center',
+                  color: '#999',
+                  border: '1px dashed #ddd',
+                  borderRadius: '4px'
+                }}>
+                  아직 소속된 상담사가 없습니다.
+                </div>
+              )}
+            </div>
+
+            {/* 상담사별 통계 섹션 */}
+            <div style={{ marginTop: '30px', borderTop: '2px solid #e0e0e0', paddingTop: '20px' }}>
+              <h4 style={{ marginBottom: '15px', color: '#333', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                📊 상담사별 상담 통계
+              </h4>
+
+              {loadingStatistics ? (
+                <div style={{
+                  padding: '30px',
+                  textAlign: 'center',
+                  color: '#666',
+                  backgroundColor: '#f9f9f9',
+                  borderRadius: '4px'
+                }}>
+                  통계 데이터 로딩 중...
+                </div>
+              ) : centerStatistics && centerStatistics.counselorStatistics ? (
+                <>
+                  {/* 전체 센터 통계 요약 */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: '15px',
+                    marginBottom: '20px'
+                  }}>
+                    <div style={{
+                      padding: '15px',
+                      backgroundColor: '#e3f2fd',
+                      borderRadius: '8px',
+                      textAlign: 'center'
+                    }}>
+                      <div style={{ fontSize: '14px', color: '#1976d2', marginBottom: '5px' }}>전체 상담 횟수</div>
+                      <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#1565c0' }}>
+                        {centerStatistics.centerStats?.totalSessions || 0}
+                      </div>
+                    </div>
+                    <div style={{
+                      padding: '15px',
+                      backgroundColor: '#e8f5e9',
+                      borderRadius: '8px',
+                      textAlign: 'center'
+                    }}>
+                      <div style={{ fontSize: '14px', color: '#2e7d32', marginBottom: '5px' }}>이번 주</div>
+                      <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#1b5e20' }}>
+                        {centerStatistics.centerStats?.weekSessions || 0}
+                      </div>
+                    </div>
+                    <div style={{
+                      padding: '15px',
+                      backgroundColor: '#fff3e0',
+                      borderRadius: '8px',
+                      textAlign: 'center'
+                    }}>
+                      <div style={{ fontSize: '14px', color: '#e65100', marginBottom: '5px' }}>이번 달</div>
+                      <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#bf360c' }}>
+                        {centerStatistics.centerStats?.monthSessions || 0}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 상담사별 상세 통계 테이블 */}
+                  {centerStatistics.counselorStatistics.length > 0 ? (
+                    <div style={{
+                      border: '1px solid #e0e0e0',
+                      borderRadius: '4px',
+                      overflow: 'hidden'
+                    }}>
+                      {/* 테이블 헤더 */}
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr',
+                        gap: '10px',
+                        padding: '12px 15px',
+                        backgroundColor: '#f5f5f5',
+                        fontWeight: 'bold',
+                        fontSize: '13px',
+                        borderBottom: '2px solid #ddd'
+                      }}>
+                        <div>상담사</div>
+                        <div style={{ textAlign: 'center' }}>전체</div>
+                        <div style={{ textAlign: 'center' }}>완료</div>
+                        <div style={{ textAlign: 'center' }}>이번주</div>
+                        <div style={{ textAlign: 'center' }}>이번달</div>
+                        <div style={{ textAlign: 'center' }}>완료율</div>
+                      </div>
+
+                      {/* 테이블 행 */}
+                      {centerStatistics.counselorStatistics.map((stat: any, idx: number) => (
+                        <div
+                          key={stat.counselorId}
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr',
+                            gap: '10px',
+                            padding: '12px 15px',
+                            borderBottom: idx < centerStatistics.counselorStatistics.length - 1 ? '1px solid #e0e0e0' : 'none',
+                            backgroundColor: idx % 2 === 0 ? '#fff' : '#fafafa',
+                            alignItems: 'center'
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>
+                              {stat.counselorName}
+                              {!stat.isActive && (
+                                <span style={{
+                                  marginLeft: '8px',
+                                  fontSize: '11px',
+                                  padding: '2px 6px',
+                                  backgroundColor: '#ffebee',
+                                  color: '#c62828',
+                                  borderRadius: '8px'
+                                }}>
+                                  비활성
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#666' }}>{stat.counselorEmail}</div>
+                          </div>
+                          <div style={{ textAlign: 'center', fontWeight: 'bold', color: '#1976d2' }}>
+                            {stat.totalSessions}
+                          </div>
+                          <div style={{ textAlign: 'center', color: '#2e7d32' }}>
+                            {stat.completedSessions}
+                          </div>
+                          <div style={{ textAlign: 'center', color: '#f57c00' }}>
+                            {stat.weekSessions}
+                          </div>
+                          <div style={{ textAlign: 'center', color: '#7b1fa2' }}>
+                            {stat.monthSessions}
+                          </div>
+                          <div style={{ textAlign: 'center' }}>
+                            <span style={{
+                              padding: '4px 8px',
+                              borderRadius: '12px',
+                              fontSize: '12px',
+                              fontWeight: 'bold',
+                              backgroundColor: stat.completionRate >= 80 ? '#e8f5e9' :
+                                             stat.completionRate >= 50 ? '#fff3e0' : '#ffebee',
+                              color: stat.completionRate >= 80 ? '#2e7d32' :
+                                     stat.completionRate >= 50 ? '#e65100' : '#c62828'
+                            }}>
+                              {stat.completionRate}%
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{
+                      padding: '30px',
+                      textAlign: 'center',
+                      color: '#999',
+                      backgroundColor: '#f9f9f9',
+                      borderRadius: '4px',
+                      border: '1px dashed #ddd'
+                    }}>
+                      상담 기록이 없습니다.
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div style={{
+                  padding: '30px',
+                  textAlign: 'center',
+                  color: '#999',
+                  backgroundColor: '#f9f9f9',
+                  borderRadius: '4px',
+                  border: '1px dashed #ddd'
+                }}>
+                  통계 데이터를 불러올 수 없습니다.
+                </div>
+              )}
+            </div>
+
             <div style={{ marginTop: '20px', textAlign: 'right' }}>
               <button
-                onClick={() => setViewingCenterDetail(null)}
+                onClick={() => {
+                  setViewingCenterDetail(null);
+                  setCounselorEmailToAdd('');
+                  setCenterStatistics(null);
+                }}
                 style={{
                   backgroundColor: '#1976d2',
                   color: 'white',
@@ -4060,6 +4767,157 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ user, onLogou
                 }}
                 placeholder="사업자등록번호를 입력하세요"
               />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>전문분야</label>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '8px',
+                padding: '10px',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                backgroundColor: '#f9f9f9'
+              }}>
+                {['재무상담', '법률상담', '스트레스 관리', '직장 내 갈등', '업무 효율성', '워라밸', '진로 상담', '심리치료', '가족상담', '중독치료', '정신건강', '기타'].map(specialty => (
+                  <label key={specialty} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px' }}>
+                    <input
+                      type="checkbox"
+                      checked={(newCenterForm.specialties || []).includes(specialty)}
+                      onChange={(e) => {
+                        const currentSpecialties = newCenterForm.specialties || [];
+                        if (e.target.checked) {
+                          setNewCenterForm(prev => ({
+                            ...prev,
+                            specialties: [...currentSpecialties, specialty]
+                          }));
+                        } else {
+                          setNewCenterForm(prev => ({
+                            ...prev,
+                            specialties: currentSpecialties.filter(s => s !== specialty)
+                          }));
+                        }
+                      }}
+                    />
+                    {specialty}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* 운영시간 관리 */}
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>운영시간</label>
+              <div style={{
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                padding: '12px',
+                backgroundColor: '#f9f9f9'
+              }}>
+                {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(day => {
+                  const dayNames = {
+                    monday: '월요일',
+                    tuesday: '화요일',
+                    wednesday: '수요일',
+                    thursday: '목요일',
+                    friday: '금요일',
+                    saturday: '토요일',
+                    sunday: '일요일'
+                  };
+
+                  const currentHours = newCenterForm.operatingHours?.[day] || { start: '09:00', end: '18:00', isOpen: day !== 'saturday' && day !== 'sunday' };
+
+                  return (
+                    <div key={day} style={{
+                      display: 'grid',
+                      gridTemplateColumns: '80px 1fr',
+                      gap: '10px',
+                      alignItems: 'center',
+                      marginBottom: '8px',
+                      paddingBottom: '8px',
+                      borderBottom: day !== 'sunday' ? '1px solid #e0e0e0' : 'none'
+                    }}>
+                      <div style={{ fontSize: '13px', fontWeight: '500' }}>
+                        {dayNames[day]}
+                      </div>
+                      <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          <input
+                            type="checkbox"
+                            checked={currentHours.isOpen}
+                            onChange={(e) => {
+                              setNewCenterForm(prev => ({
+                                ...prev,
+                                operatingHours: {
+                                  ...(prev.operatingHours || {}),
+                                  [day]: {
+                                    ...currentHours,
+                                    isOpen: e.target.checked
+                                  }
+                                }
+                              }));
+                            }}
+                          />
+                          <span style={{ fontSize: '12px' }}>영업</span>
+                        </label>
+                        {currentHours.isOpen && (
+                          <>
+                            <input
+                              type="time"
+                              value={currentHours.start || '09:00'}
+                              onChange={(e) => {
+                                setNewCenterForm(prev => ({
+                                  ...prev,
+                                  operatingHours: {
+                                    ...(prev.operatingHours || {}),
+                                    [day]: {
+                                      ...currentHours,
+                                      start: e.target.value
+                                    }
+                                  }
+                                }));
+                              }}
+                              style={{
+                                padding: '4px 8px',
+                                border: '1px solid #ddd',
+                                borderRadius: '4px',
+                                fontSize: '12px'
+                              }}
+                            />
+                            <span style={{ fontSize: '12px' }}>~</span>
+                            <input
+                              type="time"
+                              value={currentHours.end || '18:00'}
+                              onChange={(e) => {
+                                setNewCenterForm(prev => ({
+                                  ...prev,
+                                  operatingHours: {
+                                    ...(prev.operatingHours || {}),
+                                    [day]: {
+                                      ...currentHours,
+                                      end: e.target.value
+                                    }
+                                  }
+                                }));
+                              }}
+                              style={{
+                                padding: '4px 8px',
+                                border: '1px solid #ddd',
+                                borderRadius: '4px',
+                                fontSize: '12px'
+                              }}
+                            />
+                          </>
+                        )}
+                        {!currentHours.isOpen && (
+                          <span style={{ fontSize: '12px', color: '#999' }}>휴무</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             <div style={{ marginBottom: '20px' }}>

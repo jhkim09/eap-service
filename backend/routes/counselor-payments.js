@@ -2,7 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const CounselorPayment = require('../models/CounselorPayment');
 const CounselingSession = require('../models/CounselingSession');
-const Counselor = require('../models/Counselor');
+const User = require('../models/User');
 const { auth, authorize } = require('../middleware/auth');
 
 const router = express.Router();
@@ -14,12 +14,9 @@ router.get('/', auth, async (req, res) => {
     let filter = {};
 
     // 역할별 필터링
-    if (req.user.role === 'counselor') {
-      // 상담사는 본인 정산만 조회 가능
-      const counselor = await Counselor.findOne({ email: req.user.email });
-      if (counselor) {
-        filter.counselor = counselor._id;
-      }
+    if (req.user.role === 'counselor' || req.user.role === 'financial-advisor') {
+      // 상담사/재무상담사는 본인 정산만 조회 가능
+      filter.counselor = req.user._id;
     } else if (req.user.role === 'super-admin') {
       // Super Admin은 모든 정산 조회 가능
       if (counselorId) filter.counselor = counselorId;
@@ -67,9 +64,8 @@ router.get('/:id', auth, async (req, res) => {
     }
 
     // 권한 확인
-    if (req.user.role === 'counselor') {
-      const counselor = await Counselor.findOne({ email: req.user.email });
-      if (!counselor || payment.counselor._id.toString() !== counselor._id.toString()) {
+    if (req.user.role === 'counselor' || req.user.role === 'financial-advisor') {
+      if (payment.counselor._id.toString() !== req.user._id.toString()) {
         return res.status(403).json({ message: '권한이 없습니다.' });
       }
     } else if (req.user.role !== 'super-admin') {
@@ -297,8 +293,7 @@ router.put('/:id/dispute', [auth, authorize(['counselor'])], [
     }
 
     // 본인의 정산만 이의 제기 가능
-    const counselor = await Counselor.findOne({ email: req.user.email });
-    if (!counselor || payment.counselor.toString() !== counselor._id.toString()) {
+    if (payment.counselor.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: '권한이 없습니다.' });
     }
 
@@ -384,9 +379,8 @@ router.get('/:id/statement', auth, async (req, res) => {
     }
 
     // 권한 확인
-    if (req.user.role === 'counselor') {
-      const counselor = await Counselor.findOne({ email: req.user.email });
-      if (!counselor || payment.counselor._id.toString() !== counselor._id.toString()) {
+    if (req.user.role === 'counselor' || req.user.role === 'financial-advisor') {
+      if (payment.counselor._id.toString() !== req.user._id.toString()) {
         return res.status(403).json({ message: '권한이 없습니다.' });
       }
     } else if (req.user.role !== 'super-admin') {
