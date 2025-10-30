@@ -463,6 +463,10 @@ const AruneAnalysis: React.FC<AruneAnalysisProps> = ({ user }) => {
   const renderReport = () => {
     if (!selectedReport) return null;
 
+    // 디버깅: 리포트 데이터 구조 확인
+    console.log('렌더링할 리포트 데이터:', selectedReport);
+    console.log('recommendations 타입:', typeof selectedReport.recommendations, Array.isArray(selectedReport.recommendations));
+
     return (
       <div style={{ padding: '20px' }}>
         <button
@@ -497,66 +501,71 @@ const AruneAnalysis: React.FC<AruneAnalysisProps> = ({ user }) => {
             marginBottom: '24px'
           }}>
             <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#10b981', marginBottom: '8px' }}>
-              {selectedReport.animalType}
+              {selectedReport.animalType || '분석중'}
             </div>
             <div style={{ color: '#64748b' }}>
-              {selectedReport.animalTypeDescription}
+              {selectedReport.animalTypeDescription || ''}
             </div>
           </div>
 
           {/* 점수 */}
-          <div style={{ marginBottom: '30px' }}>
-            <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '16px', color: '#1e293b' }}>
-              영역별 점수
-            </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
-              {Object.entries(selectedReport.scores).filter(([key]) => key !== 'total').map(([key, value]) => (
-                <div key={key} style={{
-                  padding: '16px',
-                  backgroundColor: '#f8fafc',
-                  borderRadius: '8px'
-                }}>
-                  <div style={{ fontSize: '14px', color: '#64748b', marginBottom: '4px' }}>
-                    {key === 'spending' && '지출관리'}
-                    {key === 'saving' && '저축'}
-                    {key === 'investment' && '투자'}
-                    {key === 'riskManagement' && '리스크 관리'}
+          {selectedReport.scores && (
+            <div style={{ marginBottom: '30px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '16px', color: '#1e293b' }}>
+                영역별 점수
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+                {Object.entries(selectedReport.scores).filter(([key]) => key !== 'total').map(([key, value]) => (
+                  <div key={key} style={{
+                    padding: '16px',
+                    backgroundColor: '#f8fafc',
+                    borderRadius: '8px'
+                  }}>
+                    <div style={{ fontSize: '14px', color: '#64748b', marginBottom: '4px' }}>
+                      {key === 'spending' && '지출관리'}
+                      {key === 'saving' && '저축'}
+                      {key === 'investment' && '투자'}
+                      {key === 'riskManagement' && '리스크 관리'}
+                    </div>
+                    <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#10b981' }}>
+                      {value}점
+                    </div>
                   </div>
-                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#10b981' }}>
-                    {value}점
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* 인생시계 */}
-          <div style={{ marginBottom: '30px' }}>
-            <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '16px', color: '#1e293b' }}>
-              인생 시계
-            </h3>
-            <div style={{
-              padding: '20px',
-              backgroundColor: '#f8fafc',
-              borderRadius: '8px',
-              textAlign: 'center'
-            }}>
-              <div style={{ fontSize: '48px', fontWeight: 'bold', color: '#10b981' }}>
-                {selectedReport.lifeClock.timeString}
-              </div>
-              <div style={{ color: '#64748b', marginTop: '8px' }}>
-                {selectedReport.lifeClock.phase} ({selectedReport.lifeClock.percentageComplete}% 완료)
+          {selectedReport.lifeClock && (
+            <div style={{ marginBottom: '30px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '16px', color: '#1e293b' }}>
+                인생 시계
+              </h3>
+              <div style={{
+                padding: '20px',
+                backgroundColor: '#f8fafc',
+                borderRadius: '8px',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '48px', fontWeight: 'bold', color: '#10b981' }}>
+                  {selectedReport.lifeClock.timeString}
+                </div>
+                <div style={{ color: '#64748b', marginTop: '8px' }}>
+                  {selectedReport.lifeClock.phase} ({selectedReport.lifeClock.percentageComplete}% 완료)
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* 추천사항 */}
-          <div>
-            <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '16px', color: '#1e293b' }}>
-              맞춤 재무 계획
-            </h3>
-            <div style={{ display: 'grid', gap: '16px' }}>
-              {selectedReport.recommendations.map((rec, index) => (
+          {selectedReport.recommendations && Array.isArray(selectedReport.recommendations) && selectedReport.recommendations.length > 0 && (
+            <div>
+              <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '16px', color: '#1e293b' }}>
+                맞춤 재무 계획
+              </h3>
+              <div style={{ display: 'grid', gap: '16px' }}>
+                {selectedReport.recommendations.map((rec, index) => (
                 <div key={index} style={{
                   padding: '20px',
                   backgroundColor: '#f8fafc',
@@ -584,15 +593,18 @@ const AruneAnalysis: React.FC<AruneAnalysisProps> = ({ user }) => {
                   <p style={{ color: '#64748b', marginBottom: '12px' }}>
                     {rec.description}
                   </p>
-                  <ul style={{ listStyle: 'disc', paddingLeft: '20px', color: '#64748b' }}>
-                    {rec.actionItems.map((item, idx) => (
-                      <li key={idx}>{item}</li>
-                    ))}
-                  </ul>
+                  {rec.actionItems && Array.isArray(rec.actionItems) && rec.actionItems.length > 0 && (
+                    <ul style={{ listStyle: 'disc', paddingLeft: '20px', color: '#64748b' }}>
+                      {rec.actionItems.map((item, idx) => (
+                        <li key={idx}>{item}</li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               ))}
             </div>
           </div>
+          )}
         </div>
       </div>
     );
