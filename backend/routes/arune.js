@@ -284,13 +284,47 @@ router.post('/report/:sessionId/generate', auth, async (req, res) => {
       animalTypeDescription = '재무관리에 소극적입니다. 기본적인 재무 습관부터 시작하세요.';
     }
 
-    // 인생시계 계산 (현재 나이 기반, 더미 데이터)
-    const currentAge = 35; // 실제로는 사용자 프로필에서 가져와야 함
+    // 인생시계 계산 (실제 사용자 나이 기반)
+    const currentYear = new Date().getFullYear();
+    const birthYear = session.aruneSurvey?.personalInfo?.birthYear || currentYear - 35;
+    const currentAge = currentYear - birthYear;
+
+    // 기준 수명: 120세
+    const maxAge = 120;
+    const percentageComplete = Math.round((currentAge / maxAge) * 100);
+
+    // 퍼센티지를 시간으로 변환 (0% = 오전 6시, 100% = 다음날 오전 6시)
+    const totalMinutes = Math.round(percentageComplete * 14.4); // 24시간 = 1440분
+    const hours = Math.floor(totalMinutes / 60) + 6; // 오전 6시 시작
+    const minutes = totalMinutes % 60;
+    const displayHours = hours >= 24 ? hours - 24 : hours;
+    const period = displayHours >= 12 ? '오후' : '오전';
+    const displayHour12 = displayHours > 12 ? displayHours - 12 : (displayHours === 0 ? 12 : displayHours);
+    const timeString = `${period} ${displayHour12}시 ${minutes}분`;
+
+    // 인생 단계 자동 분류
+    let phase;
+    if (currentAge < 20) {
+      phase = '청소년기';
+    } else if (currentAge < 30) {
+      phase = '청년기';
+    } else if (currentAge < 40) {
+      phase = '장년기 초기';
+    } else if (currentAge < 50) {
+      phase = '중년기';
+    } else if (currentAge < 65) {
+      phase = '중년기 후기';
+    } else if (currentAge < 80) {
+      phase = '노년기';
+    } else {
+      phase = '고령기';
+    }
+
     const lifeClock = {
       age: currentAge,
-      timeString: '오후 2시 30분',
-      phase: '중년기 진입',
-      percentageComplete: Math.round((currentAge / 85) * 100)
+      timeString,
+      phase,
+      percentageComplete
     };
 
     // 추천사항 생성
