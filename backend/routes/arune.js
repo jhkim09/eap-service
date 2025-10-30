@@ -236,9 +236,12 @@ router.post('/report/:sessionId/generate', auth, async (req, res) => {
       return res.status(404).json({ message: '재무상담 세션을 찾을 수 없습니다.' });
     }
 
-    // 권한 확인: 재무상담사만 리포트 생성 가능
-    if (req.user.role !== 'financial-advisor' && req.user.role !== 'super-admin') {
-      return res.status(403).json({ message: '재무상담사만 리포트를 생성할 수 있습니다.' });
+    // 권한 확인: 재무상담사, 슈퍼관리자, 또는 본인(직원)만 리포트 생성 가능
+    const isAdvisor = req.user.role === 'financial-advisor' || req.user.role === 'super-admin';
+    const isOwnSession = session.client._id.toString() === req.user._id.toString();
+
+    if (!isAdvisor && !isOwnSession) {
+      return res.status(403).json({ message: '권한이 없습니다. 본인의 세션 또는 담당 상담사만 리포트를 생성할 수 있습니다.' });
     }
 
     // 설문이 완료되었는지 확인
