@@ -1,7 +1,328 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const CounselingSession = require('../models/CounselingSession');
+const FinancialSession = require('../models/FinancialSession');
 const User = require('../models/User');
+const Company = require('../models/Company');
+const { auth } = require('../middleware/auth');
+
+/**
+ * GET /api/dashboard/employee
+ * 고객(직원) 통합 대시보드
+ * - 심리상담 이용 내역
+ * - 재무상담 이용 내역
+ * - 회사 잔여 세션 수
+ * - 예정된 상담 일정
+ * - 최근 상담 요약
+ */
+router.get('/employee', auth, async (req, res) => {
+  try {
+    // 본인의 정보만 조회 가능
+    const userId = req.user.id;
+
+    // 사용자 및 회사 정보
+    const user = await User.findById(userId).populate('company');
+    if (!user) {
+      return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
+    }
+
+    // 심리상담 세션 조회
+    const psychSessions = await CounselingSession.find({ employee: userId })
+      .populate('counselor', 'name specialties rating')
+      .populate('company', 'name')
+      .sort({ appointmentDate: -1 })
+      .limit(10);
+
+    // 재무상담 세션 조회
+    const financialSessions = await FinancialSession.find({ client: userId })
+      .populate('financialAdvisor', 'name specialties rating')
+      .sort({ scheduledDate: -1 })
+      .limit(10);
+
+    // 회사 잔여 세션 정보
+    const company = user.company ? await Company.findById(user.company) : null;
+    const companyBalance = company ? {
+      totalSessions: company.balance || 0,
+      usedSessions: company.totalSessionsUsed || 0,
+      remainingSessions: (company.balance || 0) - (company.totalSessionsUsed || 0)
+    } : null;
+
+    // 개인 연간 이용 현황
+    const annualUsage = user.annualCounselingUsage || { year: new Date().getFullYear(), used: 0, limit: 12 };
+
+    // 예정된 상담 (scheduled 상태)
+    const today = new Date();
+    const upcomingPsychSessions = psychSessions.filter(s =>
+      s.status === 'scheduled' && new Date(s.appointmentDate) >= today
+    );
+    const upcomingFinancialSessions = financialSessions.filter(s =>
+      s.status === 'scheduled' && new Date(s.scheduledDate) >= today
+    );
+
+    // 최근 완료된 상담
+    const recentCompletedPsych = psychSessions.find(s => s.status === 'completed');
+    const recentCompletedFinancial = financialSessions.find(s => s.status === 'completed');
+
+    // 최근 상담 요약 (Tiro 데이터 포함)
+    const recentSummary = [];
+    if (recentCompletedPsych) {
+      recentSummary.push({
+        type: 'psychological',
+        date: recentCompletedPsych.appointmentDate,
+        counselor: recentCompletedPsych.counselor?.name,
+        topic: recentCompletedPsych.topic,
+        summary: recentCompletedPsych.tiroData?.gptAnalysis?.summary || '상담 완료'
+      });
+    }
+    if (recentCompletedFinancial) {
+      recentSummary.push({
+        type: 'financial',
+        date: recentCompletedFinancial.scheduledDate,
+        advisor: recentCompletedFinancial.financialAdvisor?.name,
+        summary: recentCompletedFinancial.sessionRecord?.sharedContent?.sessionSummary || '상담 완료'
+      });
+    }
+
+    res.json({
+      user: {
+        name: user.name,
+        email: user.email,
+        department: user.department,
+        company: company?.name
+      },
+      psychologicalCounseling: {
+        totalSessions: psychSessions.length,
+        completedSessions: psychSessions.filter(s => s.status === 'completed').length,
+        upcomingSessions: upcomingPsychSessions.length,
+        sessions: psychSessions.map(s => ({
+          id: s._id,
+          date: s.appointmentDate,
+          counselor: s.counselor?.name,
+          topic: s.topic,
+          status: s.status,
+          method: s.counselingMethod,
+          hasTiroData: !!s.tiroData
+        }))
+      },
+      financialCounseling: {
+        totalSessions: financialSessions.length,
+        completedSessions: financialSessions.filter(s => s.status === 'completed').length,
+        upcomingSessions: upcomingFinancialSessions.length,
+        sessions: financialSessions.map(s => ({
+          id: s._id,
+          date: s.scheduledDate,
+          advisor: s.financialAdvisor?.name,
+          type: s.sessionType,
+          status: s.status,
+          format: s.format
+        }))
+      },
+      companyBalance: companyBalance,
+      annualUsage: annualUsage,
+      upcomingAppointments: [
+        ...upcomingPsychSessions.map(s => ({
+          type: 'psychological',
+          id: s._id,
+          date: s.appointmentDate,
+          counselor: s.counselor?.name,
+          topic: s.topic,
+          method: s.counselingMethod
+        })),
+        ...upcomingFinancialSessions.map(s => ({
+          type: 'financial',
+          id: s._id,
+          date: s.scheduledDate,
+          advisor: s.financialAdvisor?.name,
+          sessionType: s.sessionType,
+          format: s.format
+        }))
+      ].sort((a, b) => new Date(a.date) - new Date(b.date)),
+      recentSummary: recentSummary
+    });
+  } catch (error) {
+    console.error('Employee dashboard error:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+/**
+ * GET /api/dashboard/counselor
+ * 심리상담사 대시보드 통계
+ * - 총 상담 건수
+ * - 이번 달 상담 건수
+ * - 예정된 상담
+ * - 평균 평점
+ * - 이번 달 예상 수입
+ */
+router.get('/counselor', auth, async (req, res) => {
+  try {
+    const counselorId = req.user.id;
+
+    // 총 상담 건수
+    const totalSessions = await CounselingSession.countDocuments({
+      counselor: counselorId,
+      status: 'completed'
+    });
+
+    // 이번 달 시작/종료 날짜
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+    // 이번 달 상담 건수
+    const monthSessions = await CounselingSession.countDocuments({
+      counselor: counselorId,
+      status: 'completed',
+      appointmentDate: { $gte: monthStart, $lte: monthEnd }
+    });
+
+    // 예정된 상담 (scheduled 상태)
+    const today = new Date();
+    const upcomingSessions = await CounselingSession.find({
+      counselor: counselorId,
+      status: 'scheduled',
+      appointmentDate: { $gte: today }
+    })
+    .populate('employee', 'name')
+    .sort({ appointmentDate: 1 })
+    .limit(10);
+
+    // 평균 평점 (User 모델의 rating 필드 사용)
+    const counselor = await User.findById(counselorId);
+    const averageRating = counselor?.rating || 0;
+    const totalRatings = counselor?.totalRatings || 0;
+
+    // 이번 달 예상 수입 (완료된 세션 기준)
+    const monthlyIncome = await CounselingSession.aggregate([
+      {
+        $match: {
+          counselor: new mongoose.Types.ObjectId(counselorId),
+          status: 'completed',
+          appointmentDate: { $gte: monthStart, $lte: monthEnd }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$counselorRate' }
+        }
+      }
+    ]);
+    const expectedIncome = monthlyIncome.length > 0 ? monthlyIncome[0].total : 0;
+
+    res.json({
+      totalSessions,
+      monthSessions,
+      upcomingSessions: upcomingSessions.map(s => ({
+        id: s._id,
+        date: s.appointmentDate,
+        employee: s.employee?.name,
+        topic: s.topic,
+        method: s.counselingMethod
+      })),
+      averageRating,
+      totalRatings,
+      expectedIncome
+    });
+  } catch (error) {
+    console.error('Counselor dashboard error:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+/**
+ * GET /api/dashboard/advisor
+ * 재무상담사 대시보드 통계
+ * - 총 상담 건수
+ * - 이번 달 상담 건수
+ * - 담당 고객 수
+ * - 예정된 상담
+ * - 이번 달 예상 수입
+ */
+router.get('/advisor', auth, async (req, res) => {
+  try {
+    const advisorId = req.user.id;
+    const FinancialProfile = require('../models/FinancialProfile');
+
+    // 총 상담 건수
+    const totalSessions = await FinancialSession.countDocuments({
+      financialAdvisor: advisorId,
+      status: 'completed'
+    });
+
+    // 이번 달 시작/종료 날짜
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+    // 이번 달 상담 건수
+    const monthSessions = await FinancialSession.countDocuments({
+      financialAdvisor: advisorId,
+      status: 'completed',
+      scheduledDate: { $gte: monthStart, $lte: monthEnd }
+    });
+
+    // 담당 고객 수
+    const clientCount = await FinancialProfile.countDocuments({
+      financialAdvisor: advisorId,
+      isActive: true
+    });
+
+    // 예정된 상담
+    const today = new Date();
+    const upcomingSessions = await FinancialSession.find({
+      financialAdvisor: advisorId,
+      status: 'scheduled',
+      scheduledDate: { $gte: today }
+    })
+    .populate('client', 'name')
+    .sort({ scheduledDate: 1 })
+    .limit(10);
+
+    // 평균 평점
+    const advisor = await User.findById(advisorId);
+    const averageRating = advisor?.rating || 0;
+    const totalRatings = advisor?.totalRatings || 0;
+
+    // 이번 달 예상 수입 (완료된 세션 기준)
+    const monthlyIncome = await FinancialSession.aggregate([
+      {
+        $match: {
+          financialAdvisor: new mongoose.Types.ObjectId(advisorId),
+          status: 'completed',
+          scheduledDate: { $gte: monthStart, $lte: monthEnd }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$fee.amount' }
+        }
+      }
+    ]);
+    const expectedIncome = monthlyIncome.length > 0 ? monthlyIncome[0].total : 0;
+
+    res.json({
+      totalSessions,
+      monthSessions,
+      clientCount,
+      upcomingSessions: upcomingSessions.map(s => ({
+        id: s._id,
+        date: s.scheduledDate,
+        client: s.client?.name,
+        type: s.sessionType,
+        format: s.format
+      })),
+      averageRating,
+      totalRatings,
+      expectedIncome
+    });
+  } catch (error) {
+    console.error('Advisor dashboard error:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
 
 /**
  * GET /api/dashboard/summary

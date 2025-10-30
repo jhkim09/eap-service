@@ -28,6 +28,20 @@ const getOrCreateProfile = async (userId, advisorId = null) => {
   return profile;
 };
 
+// GET /api/financial-profiles/me - 본인의 재무 프로필 조회
+router.get('/me', auth, async (req, res) => {
+  try {
+    // 본인의 프로필을 조회
+    const profile = await getOrCreateProfile(req.user.id);
+
+    await profile.populate('user financialAdvisor');
+    res.json(profile);
+  } catch (error) {
+    console.error('재무 프로필 조회 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
 // GET /api/financial-profiles/:userId - 특정 사용자의 재무 프로필 조회
 router.get('/:userId', auth, async (req, res) => {
   try {

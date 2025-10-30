@@ -25,6 +25,7 @@ const counselingGoalRoutes = require('./routes/counseling-goals');
 const resourceRoutes = require('./routes/resources');
 const tiroRoutes = require('./routes/tiro');
 const dashboardRoutes = require('./routes/dashboard');
+const aruneRoutes = require('./routes/arune');
 
 const app = express();
 
@@ -64,6 +65,7 @@ app.use('/api/counseling-goals', counselingGoalRoutes);
 app.use('/api/resources', resourceRoutes);
 app.use('/api/tiro', tiroRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/arune', aruneRoutes);
 
 // Health Check API
 app.get('/api/health', (req, res) => {
