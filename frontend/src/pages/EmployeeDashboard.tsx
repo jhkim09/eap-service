@@ -5,6 +5,7 @@ import BookingModal from '../components/Booking/BookingModal';
 import PortfolioManager from '../components/FinancialPortfolio/PortfolioManager';
 import ResourcesBoard from '../components/Resources/ResourcesBoard';
 import SessionRating from '../components/Rating/SessionRating';
+import AruneAnalysis from '../components/Arune/AruneAnalysis';
 import { MomentumTheme, MomentumComponents } from '../styles/MomentumTheme';
 
 interface EmployeeDashboardProps {
@@ -359,7 +360,8 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ user, onLogout })
             { key: 'sessions', label: '📅 상담 이력', icon: '📅' },
             { key: 'portfolio', label: '💰 재무 현황', icon: '💰' },
             { key: 'goals', label: '🎯 목표 관리', icon: '🎯' },
-            { key: 'resources', label: '📚 자료실', icon: '📚' }
+            { key: 'resources', label: '📚 자료실', icon: '📚' },
+            { key: 'arune', label: '🧮 재무 성향 분석', icon: '🧮' }
           ].map((tab) => (
             <button
               key={tab.key}
@@ -1075,6 +1077,10 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ user, onLogout })
 
           {activeTab === 'resources' && (
             <ResourcesBoard />
+          )}
+
+          {activeTab === 'arune' && (
+            <AruneAnalysis user={user} />
           )}
         </div>
       </div>
