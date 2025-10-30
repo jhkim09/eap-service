@@ -155,14 +155,11 @@ const AruneAnalysis: React.FC<AruneAnalysisProps> = ({ user }) => {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      console.log('리포트 응답 데이터:', reportData.data);
-
       if (reportData.data && reportData.data.report) {
         setSelectedReport(reportData.data.report);
         setCurrentStep('report');
         loadReports();
       } else {
-        console.error('리포트 데이터 형식 오류:', reportData.data);
         alert('리포트 데이터를 불러오는데 문제가 있습니다.');
       }
     } catch (error: any) {
@@ -462,10 +459,6 @@ const AruneAnalysis: React.FC<AruneAnalysisProps> = ({ user }) => {
   // 리포트 화면
   const renderReport = () => {
     if (!selectedReport) return null;
-
-    // 디버깅: 리포트 데이터 구조 확인
-    console.log('렌더링할 리포트 데이터:', selectedReport);
-    console.log('recommendations 타입:', typeof selectedReport.recommendations, Array.isArray(selectedReport.recommendations));
 
     return (
       <div style={{ padding: '20px' }}>
