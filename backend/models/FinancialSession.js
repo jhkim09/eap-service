@@ -162,12 +162,16 @@ const financialSessionSchema = new mongoose.Schema({
     },
 
     // AI 추천사항
-    recommendations: {
-      spending: [String],
-      saving: [String],
-      investment: [String],
-      risk: [String]
-    },
+    recommendations: [{
+      category: String,
+      priority: {
+        type: String,
+        enum: ['high', 'medium', 'low']
+      },
+      title: String,
+      description: String,
+      actionItems: [String]
+    }],
 
     // 원본 분석 데이터
     rawAnalysis: mongoose.Schema.Types.Mixed,
