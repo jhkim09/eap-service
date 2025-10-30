@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { paymentService, formatCurrency } from '../services/paymentService';
-import NotificationBell from '../components/Notifications/NotificationBell.tsx';
+import NotificationBell from '../components/Notifications/NotificationBell';
 // import CounselorsManagement from '../components/SuperAdmin/CounselorsManagement';
 // import CentersManagement from '../components/SuperAdmin/CentersManagement';
 

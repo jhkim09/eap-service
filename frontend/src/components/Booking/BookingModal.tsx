@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { MomentumTheme } from '../../styles/MomentumTheme.ts';
+import { MomentumTheme } from '../../styles/MomentumTheme';
 
 interface BookingModalProps {
   isOpen: boolean;

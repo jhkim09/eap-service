@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { MomentumTheme, MomentumComponents } from '../../styles/MomentumTheme.ts';
+import { MomentumTheme, MomentumComponents } from '../../styles/MomentumTheme';
 
 interface Resource {
   _id: string;

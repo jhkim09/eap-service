@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { MomentumTheme } from '../../styles/MomentumTheme.ts';
-import DonutChart from '../Charts/DonutChart.tsx';
+import { MomentumTheme } from '../../styles/MomentumTheme';
+import DonutChart from '../Charts/DonutChart';
 
 interface Client {
   _id: string;

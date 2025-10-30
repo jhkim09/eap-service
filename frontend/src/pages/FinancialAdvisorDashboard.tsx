@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import NotificationBell from '../components/Notifications/NotificationBell.tsx';
-import PortfolioManager from '../components/FinancialPortfolio/PortfolioManager.tsx';
-import ReportsSection from '../components/FinancialAdvisor/ReportsSection.tsx';
-import { MomentumTheme, MomentumComponents } from '../styles/MomentumTheme.ts';
+import NotificationBell from '../components/Notifications/NotificationBell';
+import PortfolioManager from '../components/FinancialPortfolio/PortfolioManager';
+import ReportsSection from '../components/FinancialAdvisor/ReportsSection';
+import { MomentumTheme, MomentumComponents } from '../styles/MomentumTheme';
 
 interface FinancialAdvisorDashboardProps {
   user: any;

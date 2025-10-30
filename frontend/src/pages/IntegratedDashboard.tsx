@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import AssignmentModal from '../components/AssignmentModal.tsx';
+import AssignmentModal from '../components/AssignmentModal';
 
 interface IntegratedDashboardProps {
   user: any;

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MomentumTheme } from '../../styles/MomentumTheme.ts';
+import { MomentumTheme } from '../../styles/MomentumTheme';
 
 interface FinancialGoal {
   _id?: string;

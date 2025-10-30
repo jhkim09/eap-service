@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import axios from 'axios';
-import Login from './pages/Login.tsx';
-import Register from './pages/Register.tsx';
-import EmployeeDashboard from './pages/EmployeeDashboard.tsx';
-import ManagerDashboard from './pages/ManagerDashboard.tsx';
-import CounselorDashboard from './pages/CounselorDashboard.tsx';
-import FinancialAdvisorDashboard from './pages/FinancialAdvisorDashboard.tsx';
-import CompanyAdminDashboard from './pages/CompanyAdminDashboard.tsx';
-import SuperAdminDashboard from './pages/SuperAdminDashboard.tsx';
-import IntegratedDashboard from './pages/IntegratedDashboard.tsx';
-import CustomerDetail from './pages/CustomerDetail.tsx';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import EmployeeDashboard from './pages/EmployeeDashboard';
+import ManagerDashboard from './pages/ManagerDashboard';
+import CounselorDashboard from './pages/CounselorDashboard';
+import FinancialAdvisorDashboard from './pages/FinancialAdvisorDashboard';
+import CompanyAdminDashboard from './pages/CompanyAdminDashboard';
+import SuperAdminDashboard from './pages/SuperAdminDashboard';
+import IntegratedDashboard from './pages/IntegratedDashboard';
+import CustomerDetail from './pages/CustomerDetail';
 
 // Axios 기본 설정
 axios.defaults.baseURL = process.env.REACT_APP_API_URL || 'https://eap-service-lt1r.onrender.com';

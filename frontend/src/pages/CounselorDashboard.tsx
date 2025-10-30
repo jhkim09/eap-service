@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import NotificationBell from '../components/Notifications/NotificationBell.tsx';
-import CounselorPayments from '../components/CounselorPayments.tsx';
+import NotificationBell from '../components/Notifications/NotificationBell';
+import CounselorPayments from '../components/CounselorPayments';
 
 interface CounselorDashboardProps {
   user: any;

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import NotificationBell from '../components/Notifications/NotificationBell.tsx';
-import BookingModal from '../components/Booking/BookingModal.tsx';
-import PortfolioManager from '../components/FinancialPortfolio/PortfolioManager.tsx';
-import ResourcesBoard from '../components/Resources/ResourcesBoard.tsx';
-import SessionRating from '../components/Rating/SessionRating.tsx';
-import { MomentumTheme, MomentumComponents } from '../styles/MomentumTheme.ts';
+import NotificationBell from '../components/Notifications/NotificationBell';
+import BookingModal from '../components/Booking/BookingModal';
+import PortfolioManager from '../components/FinancialPortfolio/PortfolioManager';
+import ResourcesBoard from '../components/Resources/ResourcesBoard';
+import SessionRating from '../components/Rating/SessionRating';
+import { MomentumTheme, MomentumComponents } from '../styles/MomentumTheme';
 
 interface EmployeeDashboardProps {
   user: any;
